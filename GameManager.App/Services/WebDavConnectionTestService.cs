@@ -30,11 +30,9 @@ public sealed class WebDavConnectionTestService : IWebDavConnectionTester
         }
 
         using var client = createClient();
-        var remoteUri = BuildRemoteUri(settings);
-
         try
         {
-            using var response = await SendWebDavRequestAsync(client, "PROPFIND", remoteUri, settings);
+            using var response = await SendWebDavRequestAsync(client, "PROPFIND", BuildRemoteUri(settings), settings);
             if (IsSuccess(response.StatusCode))
             {
                 return new WebDavConnectionTestResult(true, "连接成功");
@@ -42,7 +40,7 @@ public sealed class WebDavConnectionTestService : IWebDavConnectionTester
 
             if (response.StatusCode == HttpStatusCode.NotFound && HasRemoteDirectory(settings))
             {
-                return await TryCreateRemoteDirectoryAsync(client, remoteUri, settings);
+                return await TryCreateRemoteDirectoriesAsync(client, settings);
             }
 
             return CreateFailureResult(response.StatusCode);
@@ -53,25 +51,32 @@ public sealed class WebDavConnectionTestService : IWebDavConnectionTester
         }
     }
 
-    private static async Task<WebDavConnectionTestResult> TryCreateRemoteDirectoryAsync(
+    private static async Task<WebDavConnectionTestResult> TryCreateRemoteDirectoriesAsync(
         HttpClient client,
-        Uri remoteUri,
         WebDavSettings settings)
     {
-        using var response = await SendWebDavRequestAsync(client, "MKCOL", remoteUri, settings);
-        if (response.StatusCode == HttpStatusCode.Created ||
-            response.StatusCode == HttpStatusCode.MethodNotAllowed ||
-            IsSuccess(response.StatusCode))
+        var segments = settings.RemoteDirectory.Trim().Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+        for (var count = 1; count <= segments.Length; count++)
         {
-            return new WebDavConnectionTestResult(true, "连接成功，已创建远程目录");
+            using var response = await SendWebDavRequestAsync(
+                client,
+                "MKCOL",
+                BuildServerUri(settings.ServerUrl, segments.Take(count)),
+                settings);
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                return new WebDavConnectionTestResult(false, "连接失败：账号或应用密码不正确。");
+            }
+
+            if (response.StatusCode != HttpStatusCode.Created &&
+                response.StatusCode != HttpStatusCode.MethodNotAllowed &&
+                !IsSuccess(response.StatusCode))
+            {
+                return new WebDavConnectionTestResult(false, $"远程目录不存在，且创建失败：服务器返回 {(int)response.StatusCode}。");
+            }
         }
 
-        if (response.StatusCode == HttpStatusCode.Unauthorized)
-        {
-            return new WebDavConnectionTestResult(false, "连接失败：账号或应用密码不正确。");
-        }
-
-        return new WebDavConnectionTestResult(false, $"远程目录不存在，且创建失败：服务器返回 {(int)response.StatusCode}。");
+        return new WebDavConnectionTestResult(true, "连接成功，已创建远程目录");
     }
 
     private static async Task<HttpResponseMessage> SendWebDavRequestAsync(
@@ -92,44 +97,29 @@ public sealed class WebDavConnectionTestService : IWebDavConnectionTester
 
     private static WebDavConnectionTestResult CreateFailureResult(HttpStatusCode statusCode)
     {
-        if (statusCode == HttpStatusCode.Unauthorized)
+        return statusCode switch
         {
-            return new WebDavConnectionTestResult(false, "连接失败：账号或应用密码不正确。");
-        }
-
-        if (statusCode == HttpStatusCode.NotFound)
-        {
-            return new WebDavConnectionTestResult(false, "连接失败：远程目录不存在。");
-        }
-
-        return new WebDavConnectionTestResult(false, $"连接失败：服务器返回 {(int)statusCode}。");
+            HttpStatusCode.Unauthorized => new WebDavConnectionTestResult(false, "连接失败：账号或应用密码不正确。"),
+            HttpStatusCode.NotFound => new WebDavConnectionTestResult(false, "连接失败：远程目录不存在。"),
+            _ => new WebDavConnectionTestResult(false, $"连接失败：服务器返回 {(int)statusCode}。")
+        };
     }
 
-    private static bool IsSuccess(HttpStatusCode statusCode)
-    {
-        return ((int)statusCode >= 200 && (int)statusCode <= 299) || statusCode == (HttpStatusCode)207;
-    }
+    private static bool IsSuccess(HttpStatusCode statusCode) =>
+        (int)statusCode is >= 200 and <= 299 || statusCode == (HttpStatusCode)207;
 
-    private static bool HasRemoteDirectory(WebDavSettings settings)
-    {
-        return !string.IsNullOrWhiteSpace(settings.RemoteDirectory.Trim().Trim('/'));
-    }
+    private static bool HasRemoteDirectory(WebDavSettings settings) =>
+        !string.IsNullOrWhiteSpace(settings.RemoteDirectory.Trim().Trim('/'));
 
-    private static Uri BuildRemoteUri(WebDavSettings settings)
-    {
-        var baseUri = settings.ServerUrl.EndsWith("/", StringComparison.Ordinal)
-            ? settings.ServerUrl
-            : settings.ServerUrl + "/";
-        var remoteDirectory = settings.RemoteDirectory.Trim().Trim('/');
-        if (string.IsNullOrWhiteSpace(remoteDirectory))
-        {
-            return new Uri(baseUri);
-        }
+    private static Uri BuildRemoteUri(WebDavSettings settings) =>
+        BuildServerUri(
+            settings.ServerUrl,
+            settings.RemoteDirectory.Trim().Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries));
 
-        var escapedSegments = remoteDirectory
-            .Split('/', StringSplitOptions.RemoveEmptyEntries)
-            .Select(Uri.EscapeDataString);
-        return new Uri(baseUri + string.Join("/", escapedSegments) + "/");
+    private static Uri BuildServerUri(string serverUrl, IEnumerable<string> segments)
+    {
+        var baseUri = serverUrl.EndsWith("/", StringComparison.Ordinal) ? serverUrl : serverUrl + "/";
+        return new Uri(baseUri + string.Join("/", segments.Select(Uri.EscapeDataString)) + "/");
     }
 
     private static AuthenticationHeaderValue CreateBasicAuth(WebDavSettings settings)

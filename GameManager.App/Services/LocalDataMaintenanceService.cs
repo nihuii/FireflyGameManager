@@ -60,7 +60,7 @@ public sealed class LocalDataMaintenanceService : IDataMaintenanceService
             return 0;
         }
 
-        var ids = validGameIds.ToArray();
+        var ids = validGameIds.Select(id => SafePathSegment.Create(id, "game")).ToArray();
         var removed = 0;
         foreach (var directory in Directory.EnumerateDirectories(backupDirectory))
         {

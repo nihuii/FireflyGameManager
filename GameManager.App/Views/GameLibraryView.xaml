@@ -62,7 +62,7 @@
         </Style>
 
         <Style x:Key="LibraryOverlayMenuItemStyle" TargetType="MenuItem">
-            <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
             <Setter Property="FontSize" Value="14" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Height" Value="34" />
@@ -101,15 +101,24 @@
 
     <DockPanel>
         <Grid DockPanel.Dock="Top" Margin="0,0,0,18">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="280" />
+            </Grid.ColumnDefinitions>
             <StackPanel>
                 <TextBlock Text="全部游戏"
                            FontSize="18"
                            FontWeight="SemiBold"
-                           Foreground="{StaticResource TextBrush}" />
+                           Foreground="{DynamicResource TextBrush}" />
                 <TextBlock Text="{Binding Games.Count, StringFormat={}{0} 个本地条目}"
                            Style="{StaticResource MutedTextStyle}"
                            Margin="0,4,0,0" />
             </StackPanel>
+            <TextBox Grid.Column="1"
+                     Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                     Style="{StaticResource TextBoxStyle}"
+                     VerticalAlignment="Center"
+                     ToolTip="搜索游戏名称" />
         </Grid>
 
         <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -143,10 +152,10 @@
                                                       ShadowDepth="2"
                                                       Opacity="0.14" />
                                 </Border.Effect>
-                                <Grid Background="#DCE5DD"
+                                <Grid Background="{DynamicResource SurfaceBrush}"
                                       ClipToBounds="True">
                                     <TextBlock Text="封面"
-                                               Foreground="{StaticResource MutedTextBrush}"
+                                               Foreground="{DynamicResource MutedTextBrush}"
                                                FontSize="16"
                                                HorizontalAlignment="Center"
                                                VerticalAlignment="Center" />

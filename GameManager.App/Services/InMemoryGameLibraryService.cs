@@ -5,9 +5,12 @@ namespace GameManager.App.Services;
 public sealed class InMemoryGameLibraryService : IGameLibraryService
 {
     private readonly List<Game> games;
+    private readonly List<PlaySession> playSessions = [];
+    private readonly string machineId;
 
-    public InMemoryGameLibraryService()
+    public InMemoryGameLibraryService(string machineId = "in-memory")
     {
+        this.machineId = machineId;
         games = CreateSampleGames();
     }
 
@@ -28,7 +31,10 @@ public sealed class InMemoryGameLibraryService : IGameLibraryService
             TimeSpan.Zero,
             null,
             request.LaunchArguments.Trim(),
-            request.RunAsAdministrator);
+            request.RunAsAdministrator,
+            request.WorkingDirectory.Trim(),
+            request.MonitorProcessName.Trim(),
+            request.SyncEnabled);
 
         games.Add(game);
         return game;
@@ -55,20 +61,36 @@ public sealed class InMemoryGameLibraryService : IGameLibraryService
         }
 
         var existing = games[index];
+        var normalizedCoverPath = string.IsNullOrWhiteSpace(request.CoverImagePath) ? null : request.CoverImagePath.Trim();
+        var globalMetadataChanged =
+            !string.Equals(existing.Name, request.Name.Trim(), StringComparison.Ordinal) ||
+            !string.Equals(existing.CoverImagePath ?? string.Empty, normalizedCoverPath ?? string.Empty, StringComparison.Ordinal);
         var updated = new Game(
             existing.Id,
             request.Name.Trim(),
             request.ExecutablePath.Trim(),
             request.GameRootPath.Trim(),
             request.SavePath.Trim(),
-            string.IsNullOrWhiteSpace(request.CoverImagePath) ? null : request.CoverImagePath.Trim(),
+            normalizedCoverPath,
             existing.TotalPlayTime,
             existing.LastLaunchTime,
             request.LaunchArguments.Trim(),
-            request.RunAsAdministrator);
+            request.RunAsAdministrator,
+            request.WorkingDirectory.Trim(),
+            request.MonitorProcessName.Trim(),
+            request.SyncEnabled,
+            globalMetadataChanged ? DateTime.UtcNow : existing.UpdatedAtUtc);
 
         games[index] = updated;
         return updated;
+    }
+
+    public IReadOnlyList<PlaySession> GetPlaySessions(string gameId)
+    {
+        return playSessions
+            .Where(session => session.GameId == gameId)
+            .OrderByDescending(session => session.StartedAt)
+            .ToList();
     }
 
     public bool PinGameToTop(string id)
@@ -104,9 +126,21 @@ public sealed class InMemoryGameLibraryService : IGameLibraryService
             existing.TotalPlayTime + result.Duration,
             result.LaunchedAt,
             existing.LaunchArguments,
-            existing.RunAsAdministrator);
+            existing.RunAsAdministrator,
+            existing.WorkingDirectory,
+            existing.MonitorProcessName,
+            existing.SyncEnabled,
+            existing.UpdatedAtUtc);
 
         games[index] = updated;
+        playSessions.Add(new PlaySession(
+            Guid.NewGuid().ToString("N"),
+            id,
+            machineId,
+            result.LaunchedAt,
+            result.LaunchedAt + result.Duration,
+            result.Duration,
+            result.ExitCode));
         return updated;
     }
 

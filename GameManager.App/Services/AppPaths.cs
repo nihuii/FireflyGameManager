@@ -48,4 +48,6 @@ public static class AppPaths
     public static string AppSettingsPath => Path.Combine(DataDirectory, "app-settings.json");
 
     public static string CoverCacheDirectory => Path.Combine(DataDirectory, "CoverCache");
+
+    public static string MachineIdPath => Path.Combine(DataDirectory, "machine-id.txt");
 }

@@ -18,6 +18,9 @@ public sealed class AddGameViewModel : ViewModelBase
     private string coverImagePath = string.Empty;
     private string launchArguments = string.Empty;
     private bool runAsAdministrator;
+    private string workingDirectory = string.Empty;
+    private string monitorProcessName = string.Empty;
+    private bool syncEnabled = true;
 
     public AddGameViewModel(IFilePickerService filePickerService, Action<AddGameRequest> save, Action cancel)
         : this(filePickerService, save, cancel, null, "保存")
@@ -44,12 +47,16 @@ public sealed class AddGameViewModel : ViewModelBase
             coverImagePath = initialValues.CoverImagePath ?? string.Empty;
             launchArguments = initialValues.LaunchArguments;
             runAsAdministrator = initialValues.RunAsAdministrator;
+            workingDirectory = initialValues.WorkingDirectory;
+            monitorProcessName = initialValues.MonitorProcessName;
+            syncEnabled = initialValues.SyncEnabled;
         }
 
         BrowseExecutableCommand = new RelayCommand(_ => BrowseExecutable());
         BrowseGameRootFolderCommand = new RelayCommand(_ => BrowseGameRootFolder());
         BrowseSaveFolderCommand = new RelayCommand(_ => BrowseSaveFolder());
         BrowseCoverImageCommand = new RelayCommand(_ => BrowseCoverImage());
+        BrowseWorkingDirectoryCommand = new RelayCommand(_ => BrowseWorkingDirectory());
         CancelCommand = new RelayCommand(_ => cancel());
         saveCommand = new RelayCommand(_ => Save(), _ => CanSave());
         SaveCommand = saveCommand;
@@ -123,6 +130,24 @@ public sealed class AddGameViewModel : ViewModelBase
         set => SetProperty(ref runAsAdministrator, value);
     }
 
+    public string WorkingDirectory
+    {
+        get => workingDirectory;
+        set => SetProperty(ref workingDirectory, value);
+    }
+
+    public string MonitorProcessName
+    {
+        get => monitorProcessName;
+        set => SetProperty(ref monitorProcessName, value);
+    }
+
+    public bool SyncEnabled
+    {
+        get => syncEnabled;
+        set => SetProperty(ref syncEnabled, value);
+    }
+
     public ICommand BrowseExecutableCommand { get; }
 
     public ICommand BrowseGameRootFolderCommand { get; }
@@ -130,6 +155,8 @@ public sealed class AddGameViewModel : ViewModelBase
     public ICommand BrowseSaveFolderCommand { get; }
 
     public ICommand BrowseCoverImageCommand { get; }
+
+    public ICommand BrowseWorkingDirectoryCommand { get; }
 
     public ICommand CancelCommand { get; }
 
@@ -184,6 +211,15 @@ public sealed class AddGameViewModel : ViewModelBase
         }
     }
 
+    private void BrowseWorkingDirectory()
+    {
+        var path = filePickerService.PickFolder("选择工作目录");
+        if (!string.IsNullOrWhiteSpace(path))
+        {
+            WorkingDirectory = path;
+        }
+    }
+
     private void Save()
     {
         if (!CanSave())
@@ -198,14 +234,16 @@ public sealed class AddGameViewModel : ViewModelBase
             SavePath.Trim(),
             string.IsNullOrWhiteSpace(CoverImagePath) ? null : CoverImagePath.Trim(),
             LaunchArguments.Trim(),
-            RunAsAdministrator));
+            RunAsAdministrator,
+            WorkingDirectory.Trim(),
+            MonitorProcessName.Trim(),
+            SyncEnabled));
     }
 
     private bool CanSave()
     {
         return !string.IsNullOrWhiteSpace(GameName)
             && !string.IsNullOrWhiteSpace(ExecutablePath)
-            && !string.IsNullOrWhiteSpace(GameRootPath)
-            && !string.IsNullOrWhiteSpace(SavePath);
+            && !string.IsNullOrWhiteSpace(GameRootPath);
     }
 }

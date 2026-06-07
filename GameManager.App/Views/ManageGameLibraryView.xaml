@@ -30,10 +30,10 @@
                                                       ShadowDepth="2"
                                                       Opacity="0.14" />
                                 </Border.Effect>
-                                <Grid Background="#DCE5DD"
+                                <Grid Background="{DynamicResource SurfaceBrush}"
                                       ClipToBounds="True">
                                     <TextBlock Text="封面"
-                                               Foreground="{StaticResource MutedTextBrush}"
+                                               Foreground="{DynamicResource MutedTextBrush}"
                                                FontSize="16"
                                                HorizontalAlignment="Center"
                                                VerticalAlignment="Center" />
@@ -59,12 +59,10 @@
                             </Border>
 
                             <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                      Width="24"
-                                      Height="24"
                                       HorizontalAlignment="Right"
                                       VerticalAlignment="Top"
                                       Margin="0,10,10,0"
-                                      Background="White" />
+                                      Style="{StaticResource SelectionCheckBoxStyle}" />
                         </Grid>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
@@ -73,8 +71,8 @@
 
         <Border HorizontalAlignment="Right"
                 VerticalAlignment="Bottom"
-                Background="{StaticResource PanelBrush}"
-                BorderBrush="#E2E8E1"
+                Background="{DynamicResource PanelBrush}"
+                BorderBrush="{DynamicResource LineBrush}"
                 BorderThickness="1"
                 CornerRadius="8"
                 Padding="10">
@@ -86,11 +84,9 @@
                         Margin="0,0,10,0" />
                 <Button Content="删除"
                         Command="{Binding DeleteSelectedCommand}"
+                        Style="{StaticResource DangerButtonStyle}"
                         Width="104"
-                        Height="40"
-                        Background="#B83A3A"
-                        Foreground="White"
-                        BorderThickness="0" />
+                        Height="40" />
             </StackPanel>
         </Border>
     </Grid>

@@ -1,4 +1,6 @@
 using System.Windows.Input;
+using System.Diagnostics;
+using System.IO;
 using GameManager.App.Commands;
 using GameManager.App.Models;
 using GameManager.App.Services;
@@ -20,6 +22,9 @@ public sealed class MainWindowViewModel : ViewModelBase
     private readonly IDataMaintenanceService dataMaintenanceService;
     private readonly IAutoStartService autoStartService;
     private readonly IGameSessionPresentationService presentationService;
+    private readonly ISaveSyncCoordinator saveSyncCoordinator;
+    private readonly ICoverCacheService coverCacheService;
+    private readonly ISyncLogService syncLogService;
     private object currentViewModel;
     private string pageTitle = "游戏库";
     private bool showTopActions = true;
@@ -133,7 +138,10 @@ public sealed class MainWindowViewModel : ViewModelBase
         IGameDiscoveryService gameDiscoveryService,
         IDataMaintenanceService dataMaintenanceService,
         IAutoStartService autoStartService,
-        IGameSessionPresentationService presentationService)
+        IGameSessionPresentationService presentationService,
+        ISaveSyncCoordinator? saveSyncCoordinator = null,
+        ICoverCacheService? coverCacheService = null,
+        ISyncLogService? syncLogService = null)
     {
         this.gameLibraryService = gameLibraryService;
         this.filePickerService = filePickerService;
@@ -148,6 +156,9 @@ public sealed class MainWindowViewModel : ViewModelBase
         this.dataMaintenanceService = dataMaintenanceService;
         this.autoStartService = autoStartService;
         this.presentationService = presentationService;
+        this.saveSyncCoordinator = saveSyncCoordinator ?? new NoopSaveSyncCoordinator();
+        this.coverCacheService = coverCacheService ?? new NoopCoverCacheService();
+        this.syncLogService = syncLogService ?? new InMemorySyncLogService();
         Library = new GameLibraryViewModel(gameLibraryService.GetGames(), ShowGameDetail, DeleteGame, PinGame, ShowEditGame);
         currentViewModel = Library;
         ShowAddGameCommand = new RelayCommand(_ => ShowAddGame());
@@ -217,6 +228,11 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     public ICommand ShowSettingsCommand { get; }
 
+    public void RefreshLibrary()
+    {
+        ReloadLibrary();
+    }
+
     private void ShowLibrary()
     {
         SelectNavigation(AppPage.Library);
@@ -247,7 +263,12 @@ public sealed class MainWindowViewModel : ViewModelBase
         SelectNavigation(AppPage.Sync);
         ShowTopActions = false;
         PageTitle = SyncNavigationText;
-        CurrentViewModel = new WebDavSettingsViewModel(webDavSettingsStore, webDavConnectionTester, ShowLibrary);
+        CurrentViewModel = new WebDavSettingsViewModel(
+            webDavSettingsStore,
+            webDavConnectionTester,
+            ShowLibrary,
+            ReloadLibrary,
+            syncLogService);
         SaveLastPage(AppPage.Sync);
     }
 
@@ -288,7 +309,10 @@ public sealed class MainWindowViewModel : ViewModelBase
             saveBackupService,
             filePickerService,
             appSettingsStore,
-            presentationService);
+            presentationService,
+            saveSyncCoordinator,
+            ShowEditGame,
+            OpenDirectory);
     }
 
     private void ShowEditGame(Game game)
@@ -303,7 +327,10 @@ public sealed class MainWindowViewModel : ViewModelBase
             game.SavePath,
             game.CoverImagePath,
             game.LaunchArguments,
-            game.RunAsAdministrator);
+            game.RunAsAdministrator,
+            game.WorkingDirectory,
+            game.MonitorProcessName,
+            game.SyncEnabled);
         CurrentViewModel = new AddGameViewModel(
             filePickerService,
             request => UpdateGame(game.Id, request),
@@ -314,7 +341,7 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     private void SaveGame(AddGameRequest request)
     {
-        var game = gameLibraryService.AddGame(request);
+        var game = CacheCover(gameLibraryService.AddGame(request));
         Library.AddGame(game);
         ShowLibrary();
     }
@@ -329,7 +356,11 @@ public sealed class MainWindowViewModel : ViewModelBase
             request.SavePath,
             request.CoverImagePath,
             request.LaunchArguments,
-            request.RunAsAdministrator));
+            request.RunAsAdministrator,
+            request.WorkingDirectory,
+            request.MonitorProcessName,
+            request.SyncEnabled));
+        game = CacheCover(game);
         Library.ReplaceGame(game);
         ShowLibrary();
     }
@@ -443,5 +474,37 @@ public sealed class MainWindowViewModel : ViewModelBase
                 ShowSettings();
                 break;
         }
+    }
+
+    private static void OpenDirectory(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+        {
+            return;
+        }
+
+        Process.Start(new ProcessStartInfo("explorer.exe", path) { UseShellExecute = true });
+    }
+
+    private Game CacheCover(Game game)
+    {
+        var cachedPath = coverCacheService.Cache(game);
+        if (string.Equals(cachedPath, game.CoverImagePath, StringComparison.OrdinalIgnoreCase))
+        {
+            return game;
+        }
+
+        return gameLibraryService.UpdateGame(new UpdateGameRequest(
+            game.Id,
+            game.Name,
+            game.ExecutablePath,
+            game.GameRootPath,
+            game.SavePath,
+            cachedPath,
+            game.LaunchArguments,
+            game.RunAsAdministrator,
+            game.WorkingDirectory,
+            game.MonitorProcessName,
+            game.SyncEnabled));
     }
 }

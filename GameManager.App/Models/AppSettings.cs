@@ -56,6 +56,12 @@ public sealed class AppSettings
 
     public bool BackupBeforeGameLaunch { get; set; }
 
+    public bool AutoSyncBeforeGameLaunch { get; set; }
+
+    public bool AutoSyncAfterGameExit { get; set; }
+
+    public int BackupRetentionCount { get; set; } = 20;
+
     public GameSortMode DefaultSort { get; set; } = GameSortMode.Manual;
 
     public GameCardSize CardSize { get; set; } = GameCardSize.Standard;

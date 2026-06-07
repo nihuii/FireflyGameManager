@@ -12,6 +12,7 @@ public sealed class GameLibraryViewModel : ViewModelBase
     private double cardWidth = 178;
     private double cardHeight = 244;
     private bool showPlayTimeOnCards;
+    private string searchText = string.Empty;
 
     public GameLibraryViewModel(
         IEnumerable<Game> games,
@@ -70,6 +71,18 @@ public sealed class GameLibraryViewModel : ViewModelBase
     {
         get => showPlayTimeOnCards;
         private set => SetProperty(ref showPlayTimeOnCards, value);
+    }
+
+    public string SearchText
+    {
+        get => searchText;
+        set
+        {
+            if (SetProperty(ref searchText, value))
+            {
+                RefreshGames();
+            }
+        }
     }
 
     public ICommand OpenGameDetailCommand { get; }
@@ -168,6 +181,10 @@ public sealed class GameLibraryViewModel : ViewModelBase
             GameSortMode.PlayTime => manualGames.OrderByDescending(game => game.TotalPlayTime),
             _ => manualGames
         };
+        if (!string.IsNullOrWhiteSpace(SearchText))
+        {
+            ordered = ordered.Where(game => game.Name.Contains(SearchText.Trim(), StringComparison.CurrentCultureIgnoreCase));
+        }
 
         Games.Clear();
         foreach (var game in ordered)

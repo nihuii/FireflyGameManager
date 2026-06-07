@@ -30,97 +30,106 @@ public sealed class WebDavManualSyncService : IWebDavManualSyncService
         }
 
         using var client = createClient();
-        await EnsureDirectoryAsync(client, settings, []);
-        await EnsureDirectoryAsync(client, settings, ["metadata"]);
-
-        var uploaded = await PutFileAsync(client, settings, databasePath, ["metadata", "app.db"]);
-        return uploaded
-            ? new WebDavUploadResult(true, "用户信息上传完成：1 个文件", 1, 0)
-            : new WebDavUploadResult(false, "用户信息上传失败", 0, 1);
+        try
+        {
+            await EnsureDirectoriesAsync(client, settings, ["metadata"]);
+            var uploaded = await PutFileAsync(client, settings, databasePath, ["metadata", "app.db"]);
+            return uploaded
+                ? new WebDavUploadResult(true, "用户信息上传完成：1 个文件", 1, 0)
+                : new WebDavUploadResult(false, "用户信息上传失败", 0, 1);
+        }
+        catch (Exception ex)
+        {
+            return new WebDavUploadResult(false, $"用户信息上传失败：{ex.Message}", 0, 1);
+        }
     }
 
     public async Task<WebDavUploadResult> UploadSaveBackupsAsync(WebDavSettings settings, string saveBackupsDirectory)
     {
         if (!Directory.Exists(saveBackupsDirectory))
         {
-            return new WebDavUploadResult(false, "本地存档备份目录不存在", 0, 1);
+            return new WebDavUploadResult(true, "没有需要上传的存档备份", 0, 0);
         }
 
         var backupFiles = GetLatestBackupPerGameDirectory(saveBackupsDirectory);
-
         if (backupFiles.Count == 0)
         {
             return new WebDavUploadResult(true, "没有需要上传的存档备份", 0, 0);
         }
 
         using var client = createClient();
-        await EnsureDirectoryAsync(client, settings, []);
-        await EnsureDirectoryAsync(client, settings, ["save-backups"]);
-
-        var uploadedCount = 0;
-        var failedCount = 0;
-        var ensuredDirectories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
+        var uploaded = 0;
+        var failed = 0;
         foreach (var backupFile in backupFiles)
         {
-            var relativeDirectory = Path.GetRelativePath(saveBackupsDirectory, Path.GetDirectoryName(backupFile) ?? saveBackupsDirectory);
-            var relativeSegments = relativeDirectory == "."
-                ? Array.Empty<string>()
-                : relativeDirectory.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
-                    .Where(segment => !string.IsNullOrWhiteSpace(segment))
-                    .ToArray();
-            var remoteDirectorySegments = new[] { "save-backups" }.Concat(relativeSegments).ToArray();
-            var remoteDirectoryKey = string.Join("/", remoteDirectorySegments);
-            if (ensuredDirectories.Add(remoteDirectoryKey))
+            try
             {
-                await EnsureDirectoryAsync(client, settings, remoteDirectorySegments);
+                var relativeDirectory = Path.GetRelativePath(
+                    saveBackupsDirectory,
+                    Path.GetDirectoryName(backupFile) ?? saveBackupsDirectory);
+                var relativeSegments = relativeDirectory == "."
+                    ? Array.Empty<string>()
+                    : relativeDirectory.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                        .Where(segment => !string.IsNullOrWhiteSpace(segment))
+                        .ToArray();
+                var directorySegments = new[] { "save-backups" }.Concat(relativeSegments).ToArray();
+                await EnsureDirectoriesAsync(client, settings, directorySegments);
+                var fileSegments = directorySegments.Append(Path.GetFileName(backupFile)).ToArray();
+                if (await PutFileAsync(client, settings, backupFile, fileSegments))
+                {
+                    uploaded++;
+                }
+                else
+                {
+                    failed++;
+                }
             }
-
-            var remoteFileSegments = remoteDirectorySegments.Concat([Path.GetFileName(backupFile)]).ToArray();
-            if (await PutFileAsync(client, settings, backupFile, remoteFileSegments))
+            catch
             {
-                uploadedCount++;
-            }
-            else
-            {
-                failedCount++;
+                failed++;
             }
         }
 
-        var success = failedCount == 0;
-        var message = success
-            ? $"存档备份上传完成：{uploadedCount} 个文件"
-            : $"存档备份上传完成：成功 {uploadedCount} 个，失败 {failedCount} 个";
-        return new WebDavUploadResult(success, message, uploadedCount, failedCount);
+        return new WebDavUploadResult(
+            failed == 0,
+            failed == 0 ? $"存档备份上传完成：{uploaded} 个文件" : $"存档备份上传完成：成功 {uploaded} 个，失败 {failed} 个",
+            uploaded,
+            failed);
     }
 
     public async Task<WebDavDownloadResult> DownloadUserDataAsync(WebDavSettings settings, string databasePath)
     {
         using var client = createClient();
-
         try
         {
-            using var request = CreateRequest("GET", BuildRemoteUri(settings, ["metadata", "app.db"], false), settings);
+            using var request = CreateRequest(HttpMethod.Get, BuildRemoteUri(settings, ["metadata", "app.db"], false), settings);
             using var response = await client.SendAsync(request);
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                return new WebDavDownloadResult(true, "云端暂无用户信息", 0, 0);
+            }
+
             if (!IsSuccess(response.StatusCode))
             {
                 return new WebDavDownloadResult(false, $"用户信息下载失败：服务器返回 {(int)response.StatusCode}", 0, 1);
             }
 
-            var directory = Path.GetDirectoryName(databasePath);
-            if (!string.IsNullOrWhiteSpace(directory))
+            Directory.CreateDirectory(Path.GetDirectoryName(databasePath) ?? ".");
+            var temporaryPath = databasePath + $".tmp-{Guid.NewGuid():N}";
+            try
             {
-                Directory.CreateDirectory(directory);
-            }
+                await WriteResponseToFileAsync(response, temporaryPath);
+                if (File.Exists(databasePath))
+                {
+                    File.Copy(databasePath, databasePath + ".bak", true);
+                }
 
-            if (File.Exists(databasePath))
+                File.Move(temporaryPath, databasePath, true);
+            }
+            finally
             {
-                File.Copy(databasePath, databasePath + ".bak", true);
+                TryDeleteFile(temporaryPath);
             }
-
-            await using var remoteStream = await response.Content.ReadAsStreamAsync();
-            await using var localStream = new FileStream(databasePath, FileMode.Create, FileAccess.Write, FileShare.None);
-            await remoteStream.CopyToAsync(localStream);
 
             return new WebDavDownloadResult(true, "用户信息下载完成：1 个文件，本地旧数据库已备份为 .bak", 1, 0);
         }
@@ -133,7 +142,6 @@ public sealed class WebDavManualSyncService : IWebDavManualSyncService
     public async Task<WebDavDownloadResult> DownloadSaveBackupsAsync(WebDavSettings settings, string saveBackupsDirectory)
     {
         using var client = createClient();
-
         try
         {
             var remoteZipPaths = await ListSaveBackupZipPathsAsync(client, settings);
@@ -142,37 +150,35 @@ public sealed class WebDavManualSyncService : IWebDavManualSyncService
                 return new WebDavDownloadResult(true, "没有可下载的存档备份", 0, 0);
             }
 
-            Directory.CreateDirectory(saveBackupsDirectory);
-
-            var downloadedCount = 0;
-            var failedCount = 0;
+            var downloaded = 0;
+            var failed = 0;
             foreach (var remoteZipPath in remoteZipPaths)
             {
                 var localPath = BuildLocalBackupPath(saveBackupsDirectory, remoteZipPath);
                 if (localPath is null)
                 {
-                    failedCount++;
+                    failed++;
                     continue;
                 }
 
-                var remoteSegments = new[] { "save-backups" }
+                var segments = new[] { "save-backups" }
                     .Concat(remoteZipPath.Split('/', StringSplitOptions.RemoveEmptyEntries))
                     .ToArray();
-                if (await DownloadFileAsync(client, settings, remoteSegments, localPath))
+                if (await DownloadFileAsync(client, settings, segments, localPath))
                 {
-                    downloadedCount++;
+                    downloaded++;
                 }
                 else
                 {
-                    failedCount++;
+                    failed++;
                 }
             }
 
-            var success = failedCount == 0;
-            var message = success
-                ? $"存档备份下载完成：{downloadedCount} 个文件"
-                : $"存档备份下载完成：成功 {downloadedCount} 个，失败 {failedCount} 个";
-            return new WebDavDownloadResult(success, message, downloadedCount, failedCount);
+            return new WebDavDownloadResult(
+                failed == 0,
+                failed == 0 ? $"存档备份下载完成：{downloaded} 个文件" : $"存档备份下载完成：成功 {downloaded} 个，失败 {failed} 个",
+                downloaded,
+                failed);
         }
         catch (Exception ex)
         {
@@ -182,25 +188,30 @@ public sealed class WebDavManualSyncService : IWebDavManualSyncService
 
     private static async Task<IReadOnlyList<string>> ListSaveBackupZipPathsAsync(HttpClient client, WebDavSettings settings)
     {
-        var pendingDirectories = new Queue<string>();
-        var visitedDirectories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var pending = new Queue<string>();
+        var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var zipPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        pending.Enqueue(string.Empty);
 
-        pendingDirectories.Enqueue(string.Empty);
-        while (pendingDirectories.Count > 0)
+        while (pending.Count > 0)
         {
-            var relativeDirectory = pendingDirectories.Dequeue();
-            if (!visitedDirectories.Add(relativeDirectory))
+            var relativeDirectory = pending.Dequeue();
+            if (!visited.Add(relativeDirectory))
             {
                 continue;
             }
 
-            var remoteSegments = new[] { "save-backups" }
-                .Concat(SplitRemotePath(relativeDirectory))
+            var segments = new[] { "save-backups" }
+                .Concat(relativeDirectory.Split('/', StringSplitOptions.RemoveEmptyEntries))
                 .ToArray();
-            using var request = CreateRequest("PROPFIND", BuildRemoteUri(settings, remoteSegments, true), settings);
+            using var request = CreateRequest(new HttpMethod("PROPFIND"), BuildRemoteUri(settings, segments, true), settings);
             request.Headers.TryAddWithoutValidation("Depth", "1");
             using var response = await client.SendAsync(request);
+            if (response.StatusCode == HttpStatusCode.NotFound && string.IsNullOrEmpty(relativeDirectory))
+            {
+                return [];
+            }
+
             if (!IsSuccess(response.StatusCode))
             {
                 if (string.IsNullOrEmpty(relativeDirectory))
@@ -221,7 +232,7 @@ public sealed class WebDavManualSyncService : IWebDavManualSyncService
 
                 if (entry.IsDirectory)
                 {
-                    pendingDirectories.Enqueue(entry.RelativePath);
+                    pending.Enqueue(entry.RelativePath);
                 }
                 else if (entry.RelativePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
                 {
@@ -230,196 +241,160 @@ public sealed class WebDavManualSyncService : IWebDavManualSyncService
             }
         }
 
-        return zipPaths
-            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-    }
-
-    private static async Task EnsureDirectoryAsync(HttpClient client, WebDavSettings settings, IReadOnlyList<string> remoteSegments)
-    {
-        using var request = CreateRequest("MKCOL", BuildRemoteUri(settings, remoteSegments, true), settings);
-        using var response = await client.SendAsync(request);
-        if (IsDirectoryReady(response.StatusCode))
-        {
-            return;
-        }
-
-        throw new InvalidOperationException($"创建远程目录失败：服务器返回 {(int)response.StatusCode}。");
-    }
-
-    private static async Task<bool> PutFileAsync(
-        HttpClient client,
-        WebDavSettings settings,
-        string localPath,
-        IReadOnlyList<string> remoteSegments)
-    {
-        using var fileStream = new FileStream(localPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-        using var request = CreateRequest("PUT", BuildRemoteUri(settings, remoteSegments, false), settings);
-        request.Content = new StreamContent(fileStream);
-        using var response = await client.SendAsync(request);
-        return IsSuccess(response.StatusCode);
-    }
-
-    private static async Task<bool> DownloadFileAsync(
-        HttpClient client,
-        WebDavSettings settings,
-        IReadOnlyList<string> remoteSegments,
-        string localPath)
-    {
-        using var request = CreateRequest("GET", BuildRemoteUri(settings, remoteSegments, false), settings);
-        using var response = await client.SendAsync(request);
-        if (!IsSuccess(response.StatusCode))
-        {
-            return false;
-        }
-
-        var localDirectory = Path.GetDirectoryName(localPath);
-        if (!string.IsNullOrWhiteSpace(localDirectory))
-        {
-            Directory.CreateDirectory(localDirectory);
-        }
-
-        await using var remoteStream = await response.Content.ReadAsStreamAsync();
-        await using var localStream = new FileStream(localPath, FileMode.Create, FileAccess.Write, FileShare.None);
-        await remoteStream.CopyToAsync(localStream);
-        return true;
+        return zipPaths.OrderBy(path => path, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
     private static IReadOnlyList<WebDavRemoteEntry> ParseSaveBackupEntries(WebDavSettings settings, string xml)
     {
         var document = XDocument.Parse(xml);
-        return document
-            .Descendants()
+        return document.Descendants()
             .Where(element => element.Name.LocalName.Equals("response", StringComparison.OrdinalIgnoreCase))
             .Select(response =>
             {
-                var href = response
-                    .Descendants()
+                var href = response.Descendants()
                     .FirstOrDefault(element => element.Name.LocalName.Equals("href", StringComparison.OrdinalIgnoreCase))
                     ?.Value;
-                var isCollection = response
-                    .Descendants()
+                var collection = response.Descendants()
                     .Any(element => element.Name.LocalName.Equals("collection", StringComparison.OrdinalIgnoreCase));
-                return TryGetSaveBackupEntry(settings, href, isCollection);
+                return TryGetSaveBackupEntry(settings, href, collection);
             })
             .Where(entry => entry is not null)
             .Select(entry => entry!)
             .DistinctBy(entry => entry.RelativePath, StringComparer.OrdinalIgnoreCase)
-            .OrderBy(entry => entry.RelativePath, StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
 
-    private static WebDavRemoteEntry? TryGetSaveBackupEntry(WebDavSettings settings, string? href, bool isCollection)
+    private static WebDavRemoteEntry? TryGetSaveBackupEntry(WebDavSettings settings, string? href, bool collection)
     {
         if (string.IsNullOrWhiteSpace(href))
         {
             return null;
         }
 
-        var path = href.Trim();
-        if (Uri.TryCreate(path, UriKind.Absolute, out var absoluteUri))
-        {
-            path = absoluteUri.AbsolutePath;
-        }
-
+        var path = Uri.TryCreate(href.Trim(), UriKind.Absolute, out var absolute)
+            ? absolute.AbsolutePath
+            : href.Trim();
         path = Uri.UnescapeDataString(path).Replace('\\', '/');
         if (!path.StartsWith("/", StringComparison.Ordinal))
         {
             path = "/" + path;
         }
 
-        var isDirectory = isCollection || path.EndsWith("/", StringComparison.Ordinal);
-
-        var remotePrefixSegments = settings.RemoteDirectory
-            .Trim()
-            .Trim('/')
-            .Split('/', StringSplitOptions.RemoveEmptyEntries)
-            .Concat(["save-backups"]);
-        var marker = "/" + string.Join("/", remotePrefixSegments) + "/";
-        var markerIndex = path.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
-        if (markerIndex < 0)
+        var prefix = "/" + string.Join("/", settings.RemoteDirectory.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries)
+            .Concat(["save-backups"])) + "/";
+        var index = path.IndexOf(prefix, StringComparison.OrdinalIgnoreCase);
+        if (index < 0)
         {
             return null;
         }
 
-        var relativePath = path[(markerIndex + marker.Length)..].Trim('/');
+        var relative = path[(index + prefix.Length)..].Trim('/');
+        var segments = relative.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length == 0 || segments.Any(IsUnsafePathSegment))
+        {
+            return null;
+        }
+
+        return new WebDavRemoteEntry(string.Join("/", segments), collection || path.EndsWith("/", StringComparison.Ordinal));
+    }
+
+    private static async Task EnsureDirectoriesAsync(HttpClient client, WebDavSettings settings, IReadOnlyList<string> requestedSegments)
+    {
+        var allSegments = settings.RemoteDirectory.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries)
+            .Concat(requestedSegments)
+            .ToArray();
+        for (var count = 1; count <= allSegments.Length; count++)
+        {
+            using var request = CreateRequest(new HttpMethod("MKCOL"), BuildServerUri(settings, allSegments.Take(count), true), settings);
+            using var response = await client.SendAsync(request);
+            if (!IsDirectoryReady(response.StatusCode))
+            {
+                throw new InvalidOperationException($"创建远程目录失败：服务器返回 {(int)response.StatusCode}");
+            }
+        }
+    }
+
+    private static async Task<bool> PutFileAsync(HttpClient client, WebDavSettings settings, string localPath, IReadOnlyList<string> segments)
+    {
+        await using var stream = new FileStream(localPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var request = CreateRequest(HttpMethod.Put, BuildRemoteUri(settings, segments, false), settings);
+        request.Content = new StreamContent(stream);
+        using var response = await client.SendAsync(request);
+        return IsSuccess(response.StatusCode);
+    }
+
+    private static async Task<bool> DownloadFileAsync(HttpClient client, WebDavSettings settings, IReadOnlyList<string> segments, string localPath)
+    {
+        using var request = CreateRequest(HttpMethod.Get, BuildRemoteUri(settings, segments, false), settings);
+        using var response = await client.SendAsync(request);
+        if (!IsSuccess(response.StatusCode))
+        {
+            return false;
+        }
+
+        Directory.CreateDirectory(Path.GetDirectoryName(localPath) ?? ".");
+        var temporaryPath = localPath + $".tmp-{Guid.NewGuid():N}";
+        try
+        {
+            await WriteResponseToFileAsync(response, temporaryPath);
+            File.Move(temporaryPath, localPath, true);
+            return true;
+        }
+        finally
+        {
+            TryDeleteFile(temporaryPath);
+        }
+    }
+
+    private static async Task WriteResponseToFileAsync(HttpResponseMessage response, string path)
+    {
+        await using var remote = await response.Content.ReadAsStreamAsync();
+        await using var local = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+        await remote.CopyToAsync(local);
+    }
+
+    private static string? BuildLocalBackupPath(string rootDirectory, string relativePath)
+    {
+        var root = Path.GetFullPath(rootDirectory);
         var segments = relativePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
         if (segments.Length == 0 || segments.Any(IsUnsafePathSegment))
         {
             return null;
         }
 
-        return new WebDavRemoteEntry(string.Join("/", segments), isDirectory);
-    }
-
-    private static string[] SplitRemotePath(string remotePath)
-    {
-        return remotePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-    }
-
-    private static string? BuildLocalBackupPath(string saveBackupsDirectory, string remoteRelativePath)
-    {
-        var root = Path.GetFullPath(saveBackupsDirectory);
-        var segments = remoteRelativePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        if (segments.Length == 0 || segments.Any(IsUnsafePathSegment))
-        {
-            return null;
-        }
-
-        var localPath = Path.GetFullPath(Path.Combine([root, .. segments]));
+        var path = Path.GetFullPath(Path.Combine([root, .. segments]));
         var rootWithSeparator = root.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
-        return localPath.StartsWith(rootWithSeparator, StringComparison.OrdinalIgnoreCase)
-            ? localPath
-            : null;
+        return path.StartsWith(rootWithSeparator, StringComparison.OrdinalIgnoreCase) ? path : null;
     }
 
-    private static bool IsUnsafePathSegment(string segment)
-    {
-        return string.IsNullOrWhiteSpace(segment) ||
-            segment == "." ||
-            segment == ".." ||
-            segment.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0;
-    }
+    private static bool IsUnsafePathSegment(string segment) =>
+        string.IsNullOrWhiteSpace(segment) ||
+        segment is "." or ".." ||
+        segment.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 ||
+        !string.Equals(SafePathSegment.Create(segment), segment, StringComparison.Ordinal);
 
-    private static List<string> GetLatestBackupPerGameDirectory(string saveBackupsDirectory)
-    {
-        return Directory
-            .EnumerateFiles(saveBackupsDirectory, "*.zip", SearchOption.AllDirectories)
-            .GroupBy(path => Path.GetDirectoryName(path) ?? saveBackupsDirectory, StringComparer.OrdinalIgnoreCase)
-            .Select(group => group
-                .OrderByDescending(path => File.GetLastWriteTime(path))
-                .ThenByDescending(path => path, StringComparer.OrdinalIgnoreCase)
-                .First())
+    private static List<string> GetLatestBackupPerGameDirectory(string root) =>
+        Directory.EnumerateFiles(root, "*.zip", SearchOption.AllDirectories)
+            .GroupBy(path => Path.GetDirectoryName(path) ?? root, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.OrderByDescending(File.GetLastWriteTime).ThenByDescending(path => path, StringComparer.OrdinalIgnoreCase).First())
             .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
             .ToList();
-    }
 
-    private static HttpRequestMessage CreateRequest(string method, Uri uri, WebDavSettings settings)
+    private static HttpRequestMessage CreateRequest(HttpMethod method, Uri uri, WebDavSettings settings)
     {
-        var request = new HttpRequestMessage(new HttpMethod(method), uri);
+        var request = new HttpRequestMessage(method, uri);
         request.Headers.Authorization = CreateBasicAuth(settings);
         return request;
     }
 
-    private static Uri BuildRemoteUri(WebDavSettings settings, IReadOnlyList<string> remoteSegments, bool isDirectory)
-    {
-        var baseUri = settings.ServerUrl.EndsWith("/", StringComparison.Ordinal)
-            ? settings.ServerUrl
-            : settings.ServerUrl + "/";
-        var allSegments = settings.RemoteDirectory
-            .Trim()
-            .Trim('/')
-            .Split('/', StringSplitOptions.RemoveEmptyEntries)
-            .Concat(remoteSegments)
-            .Select(Uri.EscapeDataString)
-            .ToList();
-        var path = string.Join("/", allSegments);
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            return new Uri(baseUri);
-        }
+    private static Uri BuildRemoteUri(WebDavSettings settings, IReadOnlyList<string> segments, bool directory) =>
+        BuildServerUri(settings, settings.RemoteDirectory.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries).Concat(segments), directory);
 
-        return new Uri(baseUri + path + (isDirectory ? "/" : string.Empty));
+    private static Uri BuildServerUri(WebDavSettings settings, IEnumerable<string> segments, bool directory)
+    {
+        var baseUri = settings.ServerUrl.EndsWith("/", StringComparison.Ordinal) ? settings.ServerUrl : settings.ServerUrl + "/";
+        var path = string.Join("/", segments.Select(Uri.EscapeDataString));
+        return new Uri(baseUri + path + (directory ? "/" : string.Empty));
     }
 
     private static AuthenticationHeaderValue CreateBasicAuth(WebDavSettings settings)
@@ -428,14 +403,25 @@ public sealed class WebDavManualSyncService : IWebDavManualSyncService
         return new AuthenticationHeaderValue("Basic", token);
     }
 
-    private static bool IsSuccess(HttpStatusCode statusCode)
-    {
-        return ((int)statusCode >= 200 && (int)statusCode <= 299) || statusCode == (HttpStatusCode)207;
-    }
+    private static bool IsSuccess(HttpStatusCode statusCode) =>
+        (int)statusCode is >= 200 and <= 299 || statusCode == (HttpStatusCode)207;
 
-    private static bool IsDirectoryReady(HttpStatusCode statusCode)
+    private static bool IsDirectoryReady(HttpStatusCode statusCode) =>
+        IsSuccess(statusCode) || statusCode == HttpStatusCode.MethodNotAllowed;
+
+    private static void TryDeleteFile(string path)
     {
-        return IsSuccess(statusCode) || statusCode == HttpStatusCode.MethodNotAllowed;
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch
+        {
+            // Temporary cleanup must not hide the synchronization result.
+        }
     }
 
     private sealed record WebDavRemoteEntry(string RelativePath, bool IsDirectory);

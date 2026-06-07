@@ -14,6 +14,7 @@ var tests = new List<(string Name, Action Body)>
     ("browses executable and infers game paths", BrowsesExecutableAndInfersGamePaths),
     ("browses save folder and cover image", BrowsesSaveFolderAndCoverImage),
     ("saves new game into memory library", SavesNewGameIntoMemoryLibrary),
+    ("adds game without save directory", AddsGameWithoutSaveDirectory),
     ("opens management mode", OpensManagementMode),
     ("batch deletes selected games", BatchDeletesSelectedGames),
     ("deletes single game from library", DeletesSingleGameFromLibrary),
@@ -23,6 +24,9 @@ var tests = new List<(string Name, Action Body)>
     ("sqlite persists added game", SqlitePersistsAddedGame),
     ("sqlite persists updated game", SqlitePersistsUpdatedGame),
     ("sqlite persists deleted game", SqlitePersistsDeletedGame),
+    ("sqlite deleted game is not restored by cloud metadata", SqliteDeletedGameIsNotRestoredByCloudMetadata),
+    ("sqlite cloud metadata keeps newer local game info", SqliteCloudMetadataKeepsNewerLocalGameInfo),
+    ("game cloud metadata preserves info update timestamp", GameCloudMetadataPreservesInfoUpdateTimestamp),
     ("sqlite persists pinned order", SqlitePersistsPinnedOrder),
     ("game card has no caption scrim", GameCardHasNoCaptionScrim),
     ("game library omits cover wall badge", GameLibraryOmitsCoverWallBadge),
@@ -31,11 +35,19 @@ var tests = new List<(string Name, Action Body)>
     ("more menu button uses text icon style", MoreMenuButtonUsesTextIconStyle),
     ("more menu follows dynamic application theme", MoreMenuFollowsDynamicApplicationTheme),
     ("sqlite records launch result", SqliteRecordsLaunchResult),
+    ("sqlite migrates legacy database and preserves playtime", SqliteMigratesLegacyDatabaseAndPreservesPlaytime),
+    ("sqlite legacy session migration only runs once", SqliteLegacySessionMigrationOnlyRunsOnce),
+    ("sqlite records individual play sessions", SqliteRecordsIndividualPlaySessions),
+    ("sqlite session merge never reduces cloud totals", SqliteSessionMergeNeverReducesCloudTotals),
+    ("sqlite launch keeps game info update timestamp", SqliteLaunchKeepsGameInfoUpdateTimestamp),
+    ("sqlite path only edit keeps metadata timestamp", SqlitePathOnlyEditKeepsMetadataTimestamp),
     ("detail start command updates play time", DetailStartCommandUpdatesPlayTime),
     ("detail start command disabled while launch is running", DetailStartCommandDisabledWhileLaunchIsRunning),
+    ("detail first launch skips missing save directory backup", DetailFirstLaunchSkipsMissingSaveDirectoryBackup),
     ("top actions hidden on detail page", TopActionsHiddenOnDetailPage),
     ("top actions only show on library page", TopActionsOnlyShowOnLibraryPage),
     ("management page can return to library", ManagementPageCanReturnToLibrary),
+    ("management page uses shared selection and danger styles", ManagementPageUsesSharedSelectionAndDangerStyles),
     ("main window uses modern side navigation shell", MainWindowUsesModernSideNavigationShell),
     ("main window uses compact icon navigation rail", MainWindowUsesCompactIconNavigationRail),
     ("main window exposes navigation selection state", MainWindowExposesNavigationSelectionState),
@@ -46,30 +58,74 @@ var tests = new List<(string Name, Action Body)>
     ("app defines shared modern ui styles", AppDefinesSharedModernUiStyles),
     ("local save backup creates zip from save directory", LocalSaveBackupCreatesZipFromSaveDirectory),
     ("local save backup restores zip into save directory", LocalSaveBackupRestoresZipIntoSaveDirectory),
+    ("local save backup contains unsafe game ids", LocalSaveBackupContainsUnsafeGameIds),
+    ("local cover cache contains unsafe game ids", LocalCoverCacheContainsUnsafeGameIds),
+    ("safe path segments avoid windows device names", SafePathSegmentsAvoidWindowsDeviceNames),
+    ("local save restore removes stale files", LocalSaveRestoreRemovesStaleFiles),
+    ("local save restore supports archive inside save directory", LocalSaveRestoreSupportsArchiveInsideSaveDirectory),
+    ("save manifest is deterministic and detects changes", SaveManifestIsDeterministicAndDetectsChanges),
+    ("save manifest reads zip archives", SaveManifestReadsZipArchives),
+    ("restore creates protection backup and enforces retention", RestoreCreatesProtectionBackupAndEnforcesRetention),
+    ("restore failure rolls back original saves", RestoreFailureRollsBackOriginalSaves),
     ("detail save commands call backup service and picker", DetailSaveCommandsCallBackupServiceAndPicker),
+    ("detail manual save sync calls coordinator", DetailManualSaveSyncCallsCoordinator),
     ("detail view has save backup and restore buttons", DetailViewHasSaveBackupAndRestoreButtons),
     ("detail view uses shared immersive visual system", DetailViewUsesSharedImmersiveVisualSystem),
     ("local save backup lists zip history newest first", LocalSaveBackupListsZipHistoryNewestFirst),
+    ("local save backup history survives game rename", LocalSaveBackupHistorySurvivesGameRename),
     ("local save backup deletes selected backup file", LocalSaveBackupDeletesSelectedBackupFile),
     ("detail loads backup history and restores selected backup", DetailLoadsBackupHistoryAndRestoresSelectedBackup),
     ("detail deletes selected backup and refreshes history", DetailDeletesSelectedBackupAndRefreshesHistory),
     ("detail view has backup history list actions", DetailViewHasBackupHistoryListActions),
     ("webdav settings store saves and loads config", WebDavSettingsStoreSavesAndLoadsConfig),
+    ("webdav settings store encrypts and migrates password", WebDavSettingsStoreEncryptsAndMigratesPassword),
+    ("webdav settings store tolerates invalid json", WebDavSettingsStoreToleratesInvalidJson),
+    ("webdav settings view masks application password", WebDavSettingsViewMasksApplicationPassword),
     ("webdav connection test sends propfind with basic auth", WebDavConnectionTestSendsPropfindWithBasicAuth),
     ("webdav connection test creates missing remote directory", WebDavConnectionTestCreatesMissingRemoteDirectory),
+    ("webdav connection test creates nested remote directories", WebDavConnectionTestCreatesNestedRemoteDirectories),
+    ("webdav connection test reports invalid server urls", WebDavConnectionTestReportsInvalidServerUrls),
     ("webdav manual sync uploads user database", WebDavManualSyncUploadsUserDatabase),
     ("webdav manual sync uploads save backup zips", WebDavManualSyncUploadsSaveBackupZips),
     ("webdav manual sync downloads user database", WebDavManualSyncDownloadsUserDatabase),
+    ("webdav manual sync treats missing remote data as empty", WebDavManualSyncTreatsMissingRemoteDataAsEmpty),
     ("webdav manual sync downloads save backup zips", WebDavManualSyncDownloadsSaveBackupZips),
     ("webdav manual sync walks save backup subdirectories", WebDavManualSyncWalksSaveBackupSubdirectories),
     ("sqlite game library merge adds remote and keeps newest game info", SqliteGameLibraryMergeAddsRemoteAndKeepsNewestGameInfo),
+    ("sqlite game library merge applies remote deletion tombstones", SqliteGameLibraryMergeAppliesRemoteDeletionTombstones),
+    ("sqlite game library merge preserves remote play sessions", SqliteGameLibraryMergePreservesRemotePlaySessions),
     ("save backup merge copies missing and keeps newest file", SaveBackupMergeCopiesMissingAndKeepsNewestFile),
     ("webdav full sync downloads merges and uploads", WebDavFullSyncDownloadsMergesAndUploads),
+    ("webdav v2 publishes per game and per device data", WebDavV2PublishesPerGameAndPerDeviceData),
+    ("webdav v2 per game upload registers index", WebDavV2PerGameUploadRegistersIndex),
+    ("webdav v2 preserves remote play session index", WebDavV2PreservesRemotePlaySessionIndex),
+    ("webdav v2 upload preserves newer remote game info", WebDavV2UploadPreservesNewerRemoteGameInfo),
+    ("webdav v2 stale upload does not overwrite newer cover", WebDavV2StaleUploadDoesNotOverwriteNewerCover),
+    ("webdav v2 publishes save archive before manifest", WebDavV2PublishesSaveArchiveBeforeManifest),
+    ("webdav v2 cover download preserves remote filename", WebDavV2CoverDownloadPreservesRemoteFilename),
+    ("webdav v2 cover download sanitizes reserved filename", WebDavV2CoverDownloadSanitizesReservedFilename),
+    ("webdav full sync restores matching machine paths", WebDavFullSyncRestoresMatchingMachinePaths),
+    ("sqlite machine path import tolerates null legacy fields", SqliteMachinePathImportToleratesNullLegacyFields),
+    ("sqlite machine path imports device settings for unconfigured game", SqliteMachinePathImportsDeviceSettingsForUnconfiguredGame),
+    ("startup cloud metadata pull merges game list", StartupCloudMetadataPullMergesGameList),
+    ("startup cloud metadata pull isolates per game failures", StartupCloudMetadataPullIsolatesPerGameFailures),
+    ("startup cloud metadata pull preserves newer local cover", StartupCloudMetadataPullPreservesNewerLocalCover),
+    ("startup cloud metadata pull applies remote cover removal", StartupCloudMetadataPullAppliesRemoteCoverRemoval),
+    ("save sync prompts before downloading newer cloud save", SaveSyncPromptsBeforeDownloadingNewerCloudSave),
+    ("save sync treats first cloud only save as cloud newer", SaveSyncTreatsFirstCloudOnlySaveAsCloudNewer),
+    ("save sync keep both verifies downloaded archive", SaveSyncKeepBothVerifiesDownloadedArchive),
+    ("save sync keep both deletes invalid downloaded archive", SaveSyncKeepBothDeletesInvalidDownloadedArchive),
+    ("save sync can restore when local save directory is missing", SaveSyncCanRestoreWhenLocalSaveDirectoryIsMissing),
+    ("save sync failures remain retry pending", SaveSyncFailuresRemainRetryPending),
+    ("save sync verifies restored cloud archive", SaveSyncVerifiesRestoredCloudArchive),
+    ("webdav full sync stops after failed remote download", WebDavFullSyncStopsAfterFailedRemoteDownload),
+    ("webdav full sync uploads metadata for disabled save sync game", WebDavFullSyncUploadsMetadataForDisabledSaveSyncGame),
     ("webdav settings upload commands call sync service", WebDavSettingsUploadCommandsCallSyncService),
     ("webdav settings view has manual upload buttons", WebDavSettingsViewHasManualUploadButtons),
     ("webdav settings download commands call sync service", WebDavSettingsDownloadCommandsCallSyncService),
     ("webdav settings view has manual download buttons", WebDavSettingsViewHasManualDownloadButtons),
     ("webdav settings full sync command calls sync service", WebDavSettingsFullSyncCommandCallsSyncService),
+    ("webdav settings full sync reports thrown failures", WebDavSettingsFullSyncReportsThrownFailures),
     ("webdav settings view has full sync button", WebDavSettingsViewHasFullSyncButton),
     ("webdav settings view groups sync center and advanced actions", WebDavSettingsViewGroupsSyncCenterAndAdvancedActions),
     ("webdav sync strategy is shown as tooltip", WebDavSyncStrategyIsShownAsTooltip),
@@ -87,7 +143,9 @@ var tests = new List<(string Name, Action Body)>
     ("app settings store saves all scheme a preferences", AppSettingsStoreSavesAllSchemeAPreferences),
     ("sqlite persists per game launch options", SqlitePersistsPerGameLaunchOptions),
     ("game library applies sorting card size and playtime preferences", GameLibraryAppliesDisplayPreferences),
+    ("game library search filters by name", GameLibrarySearchFiltersByName),
     ("local game discovery finds executable candidates and skips duplicates", LocalGameDiscoveryFindsExecutableCandidatesAndSkipsDuplicates),
+    ("process launcher monitors configured game before launcher exit", ProcessLauncherMonitorsConfiguredGameBeforeLauncherExit),
     ("launch workflow backs up minimizes and restores", LaunchWorkflowBacksUpMinimizesAndRestores),
     ("launch workflow reports failures without throwing", LaunchWorkflowReportsFailuresWithoutThrowing),
     ("local data maintenance exports imports and clears invalid files", LocalDataMaintenanceExportsImportsAndClearsInvalidFiles),
@@ -357,6 +415,73 @@ static void SqlitePersistsDeletedGame()
     AssertEqual(0, reloaded.GetGames().Count);
 }
 
+static void SqliteDeletedGameIsNotRestoredByCloudMetadata()
+{
+    using var database = TempDatabase.Create();
+    var service = new SqliteGameLibraryService(database.Path);
+    var game = service.AddGame(CreateAddGameRequest("Deleted Cloud Game"));
+    service.DeleteGame(game.Id);
+
+    var merge = service.MergeCloudMetadata(
+    [
+        new GameCloudMetadata
+        {
+            Id = game.Id,
+            Name = game.Name,
+            UpdatedAtUtc = DateTime.UtcNow
+        }
+    ]);
+
+    AssertEqual(0, merge.AddedCount);
+    AssertEqual(0, service.GetGames().Count);
+}
+
+static void SqliteCloudMetadataKeepsNewerLocalGameInfo()
+{
+    using var database = TempDatabase.Create();
+    var service = new SqliteGameLibraryService(database.Path);
+    var game = service.AddGame(CreateAddGameRequest("Original Name"));
+    service.UpdateGame(new UpdateGameRequest(
+        game.Id,
+        "New Local Name",
+        game.ExecutablePath,
+        game.GameRootPath,
+        game.SavePath,
+        game.CoverImagePath));
+
+    service.MergeCloudMetadata(
+    [
+        new GameCloudMetadata
+        {
+            Id = game.Id,
+            Name = "Stale Cloud Name",
+            TotalPlaySeconds = (long)TimeSpan.FromHours(3).TotalSeconds,
+            UpdatedAtUtc = DateTime.UtcNow.AddDays(-1)
+        }
+    ]);
+
+    var merged = service.GetGames().Single();
+    AssertEqual("New Local Name", merged.Name);
+    AssertEqual(TimeSpan.FromHours(3), merged.TotalPlayTime);
+}
+
+static void GameCloudMetadataPreservesInfoUpdateTimestamp()
+{
+    var updatedAt = new DateTime(2026, 6, 1, 8, 0, 0, DateTimeKind.Utc);
+    var game = new Game(
+        "metadata-time-game",
+        "Metadata Time Game",
+        @"D:\Games\Metadata\game.exe",
+        @"D:\Games\Metadata",
+        @"C:\Saves\Metadata",
+        null,
+        TimeSpan.Zero,
+        null,
+        updatedAtUtc: updatedAt);
+
+    AssertEqual(updatedAt, GameCloudMetadata.FromGame(game).UpdatedAtUtc);
+}
+
 static void SqlitePersistsPinnedOrder()
 {
     using var database = TempDatabase.Create();
@@ -465,6 +590,120 @@ static void SqliteRecordsLaunchResult()
     AssertEqual(launchedAt, reloaded.LastLaunchTime);
 }
 
+static void SqliteMigratesLegacyDatabaseAndPreservesPlaytime()
+{
+    using var database = TempDatabase.Create();
+    CreateLegacyDatabase(database.Path, 5400);
+
+    var service = new SqliteGameLibraryService(database.Path);
+    var sessions = service.GetPlaySessions("legacy-game");
+
+    AssertTrue(File.Exists(database.Path + ".pre-v2.bak"),
+        "Expected a one-time backup before upgrading a legacy database.");
+    AssertEqual(1, sessions.Count);
+    AssertEqual(TimeSpan.FromMinutes(90), sessions[0].Duration);
+    AssertEqual("legacy", sessions[0].MachineId);
+
+    var reopened = new SqliteGameLibraryService(database.Path);
+    AssertEqual(1, reopened.GetPlaySessions("legacy-game").Count);
+    AssertEqual(TimeSpan.FromMinutes(90), reopened.GetGames().Single().TotalPlayTime);
+}
+
+static void SqliteLegacySessionMigrationOnlyRunsOnce()
+{
+    using var database = TempDatabase.Create();
+    var service = new SqliteGameLibraryService(database.Path);
+    service.MergeCloudMetadata(
+    [
+        new GameCloudMetadata
+        {
+            Id = "cloud-metadata-only",
+            Name = "Cloud Metadata Only",
+            TotalPlaySeconds = (long)TimeSpan.FromHours(5).TotalSeconds,
+            UpdatedAtUtc = DateTime.UtcNow
+        }
+    ]);
+
+    var reopened = new SqliteGameLibraryService(database.Path);
+
+    AssertEqual(0, reopened.GetPlaySessions("cloud-metadata-only").Count);
+    AssertEqual(TimeSpan.FromHours(5), reopened.GetGames().Single().TotalPlayTime);
+}
+
+static void SqliteRecordsIndividualPlaySessions()
+{
+    using var database = TempDatabase.Create();
+    var service = new SqliteGameLibraryService(database.Path, "test-machine");
+    var game = service.AddGame(CreateAddGameRequest("Session Game"));
+
+    service.RecordLaunchResult(game.Id, new LaunchResult(new DateTime(2026, 6, 6, 18, 0, 0), TimeSpan.FromMinutes(35), 7));
+    service.RecordLaunchResult(game.Id, new LaunchResult(new DateTime(2026, 6, 7, 19, 0, 0), TimeSpan.FromMinutes(25)));
+
+    var sessions = service.GetPlaySessions(game.Id);
+    AssertEqual(2, sessions.Count);
+    AssertTrue(sessions.All(session => session.MachineId == "test-machine"),
+        "Expected new sessions to record the current machine id.");
+    AssertEqual(7, sessions.Single(session => session.StartedAt.Day == 6).ExitCode);
+    AssertEqual(TimeSpan.FromMinutes(60), service.GetGames().Single().TotalPlayTime);
+}
+
+static void SqliteSessionMergeNeverReducesCloudTotals()
+{
+    using var database = TempDatabase.Create();
+    var service = new SqliteGameLibraryService(database.Path, "local-machine");
+    var game = service.AddGame(CreateAddGameRequest("Cloud Total Game"));
+    var cloudLaunch = new DateTime(2026, 6, 7, 20, 0, 0);
+    service.MergeCloudMetadata(
+    [
+        new GameCloudMetadata
+        {
+            Id = game.Id,
+            Name = game.Name,
+            TotalPlaySeconds = (long)TimeSpan.FromHours(8).TotalSeconds,
+            LastLaunchTime = cloudLaunch,
+            UpdatedAtUtc = DateTime.UtcNow
+        }
+    ]);
+
+    service.MergePlaySessions(
+    [
+        new PlaySession(
+            "partial-cloud-session",
+            game.Id,
+            "remote-machine",
+            new DateTime(2026, 6, 6, 18, 0, 0),
+            new DateTime(2026, 6, 6, 18, 30, 0),
+            TimeSpan.FromMinutes(30))
+    ]);
+
+    var merged = service.GetGames().Single();
+    AssertEqual(TimeSpan.FromHours(8), merged.TotalPlayTime);
+    AssertEqual(cloudLaunch, merged.LastLaunchTime);
+}
+
+static void SqliteLaunchKeepsGameInfoUpdateTimestamp()
+{
+    using var database = TempDatabase.Create();
+    var service = new SqliteGameLibraryService(database.Path, "machine-one");
+    var game = service.AddGame(CreateAddGameRequest("Metadata Timestamp Game"));
+    var expected = new DateTime(2026, 6, 1, 8, 0, 0, DateTimeKind.Utc);
+    using (var connection = new SqliteConnection($"Data Source={database.Path}"))
+    {
+        connection.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE games SET updated_at = $updatedAt WHERE id = $id;";
+        command.Parameters.AddWithValue("$updatedAt", expected.ToString("O"));
+        command.Parameters.AddWithValue("$id", game.Id);
+        command.ExecuteNonQuery();
+    }
+
+    service.RecordLaunchResult(
+        game.Id,
+        new LaunchResult(new DateTime(2026, 6, 7, 21, 0, 0), TimeSpan.FromMinutes(30), 0));
+
+    AssertEqual(expected, new SqliteGameLibraryService(database.Path).GetGames().Single().UpdatedAtUtc);
+}
+
 static void DetailStartCommandUpdatesPlayTime()
 {
     var service = new InMemoryGameLibraryService();
@@ -562,6 +801,20 @@ static void ManagementPageCanReturnToLibrary()
     AssertEqual("游戏库", viewModel.PageTitle);
     AssertTrue(viewModel.ShowTopActions, "Expected top actions to show after exiting management.");
     AssertTrue(viewModel.CurrentViewModel is GameLibraryViewModel, "Expected to return to library view model.");
+}
+
+static void ManagementPageUsesSharedSelectionAndDangerStyles()
+{
+    var view = File.ReadAllText(System.IO.Path.Combine("GameManager.App", "Views", "ManageGameLibraryView.xaml"));
+    var styles = File.ReadAllText(System.IO.Path.Combine("GameManager.App", "Styles", "AppStyles.xaml"));
+
+    AssertTrue(view.Contains("Style=\"{StaticResource SelectionCheckBoxStyle}\"", StringComparison.Ordinal),
+        "Management selection boxes should use the shared theme-aware photo selection style.");
+    AssertTrue(view.Contains("Style=\"{StaticResource DangerButtonStyle}\"", StringComparison.Ordinal),
+        "Management delete action should use the shared rounded danger button style.");
+    AssertTrue(styles.Contains("x:Key=\"SelectionCheckBoxStyle\"", StringComparison.Ordinal)
+        && styles.Contains("x:Key=\"DangerButtonStyle\"", StringComparison.Ordinal),
+        "Shared management styles should be defined in the application style dictionary.");
 }
 
 static void MainWindowUsesModernSideNavigationShell()
@@ -754,6 +1007,148 @@ static void LocalSaveBackupRestoresZipIntoSaveDirectory()
     AssertEqual("before-backup", File.ReadAllText(System.IO.Path.Combine(saveDirectory, "slot1.sav")));
 }
 
+static void LocalSaveBackupContainsUnsafeGameIds()
+{
+    using var workspace = TempDirectory.Create();
+    var backupRoot = System.IO.Path.Combine(workspace.Path, "Backups");
+    var game = CreateGame(@"..\..\outside", "Unsafe Id Game", System.IO.Path.Combine(workspace.Path, "Saves"));
+    var service = new LocalSaveBackupService(backupRoot);
+
+    var backupDirectory = System.IO.Path.GetFullPath(service.GetBackupDirectory(game));
+    var rootWithSeparator = System.IO.Path.GetFullPath(backupRoot)
+        .TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar)
+        + System.IO.Path.DirectorySeparatorChar;
+
+    AssertTrue(backupDirectory.StartsWith(rootWithSeparator, StringComparison.OrdinalIgnoreCase),
+        "Backup directory names derived from game ids must stay inside the configured backup root.");
+}
+
+static void LocalCoverCacheContainsUnsafeGameIds()
+{
+    using var workspace = TempDirectory.Create();
+    var coverSource = System.IO.Path.Combine(workspace.Path, "cover.png");
+    File.WriteAllText(coverSource, "cover");
+    var coverRoot = System.IO.Path.Combine(workspace.Path, "CoverCache");
+    var game = new Game(
+        @"..\..\outside",
+        "Unsafe Cover Id",
+        @"D:\Games\Unsafe\game.exe",
+        @"D:\Games\Unsafe",
+        @"C:\Saves\Unsafe",
+        coverSource,
+        TimeSpan.Zero,
+        null);
+
+    var cachedPath = new LocalCoverCacheService(coverRoot).Cache(game)!;
+    var rootWithSeparator = System.IO.Path.GetFullPath(coverRoot)
+        .TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar)
+        + System.IO.Path.DirectorySeparatorChar;
+
+    AssertTrue(System.IO.Path.GetFullPath(cachedPath).StartsWith(rootWithSeparator, StringComparison.OrdinalIgnoreCase),
+        "Cover cache names derived from game ids must stay inside the configured cache root.");
+}
+
+static void SafePathSegmentsAvoidWindowsDeviceNames()
+{
+    AssertEqual("_CON", SafePathSegment.Create("CON"));
+    AssertEqual("_LPT1.json", SafePathSegment.Create("LPT1.json"));
+}
+
+static void LocalSaveRestoreRemovesStaleFiles()
+{
+    using var workspace = TempDirectory.Create();
+    var saveDirectory = System.IO.Path.Combine(workspace.Path, "Saves");
+    Directory.CreateDirectory(saveDirectory);
+    File.WriteAllText(System.IO.Path.Combine(saveDirectory, "slot1.sav"), "local");
+    File.WriteAllText(System.IO.Path.Combine(saveDirectory, "deleted-by-remote.sav"), "stale");
+    var restoreZip = System.IO.Path.Combine(workspace.Path, "remote.zip");
+    CreateZipWithFile(restoreZip, "slot1.sav", "remote");
+    var service = new LocalSaveBackupService(System.IO.Path.Combine(workspace.Path, "Backups"));
+    var game = CreateGame("exact-restore", "Exact Restore", saveDirectory);
+
+    service.RestoreAsync(game, restoreZip).GetAwaiter().GetResult();
+
+    AssertEqual("remote", File.ReadAllText(System.IO.Path.Combine(saveDirectory, "slot1.sav")));
+    AssertTrue(!File.Exists(System.IO.Path.Combine(saveDirectory, "deleted-by-remote.sav")),
+        "Restore should exactly match the selected archive and remove stale local files.");
+}
+
+static void LocalSaveRestoreSupportsArchiveInsideSaveDirectory()
+{
+    using var workspace = TempDirectory.Create();
+    var saveDirectory = System.IO.Path.Combine(workspace.Path, "Saves");
+    Directory.CreateDirectory(saveDirectory);
+    File.WriteAllText(System.IO.Path.Combine(saveDirectory, "slot.sav"), "local");
+    var restoreZip = System.IO.Path.Combine(saveDirectory, "restore.zip");
+    CreateZipWithFile(restoreZip, "slot.sav", "remote");
+    var service = new LocalSaveBackupService(System.IO.Path.Combine(workspace.Path, "Backups"));
+    var game = CreateGame("inside-restore", "Inside Restore", saveDirectory);
+
+    service.RestoreAsync(game, restoreZip).GetAwaiter().GetResult();
+
+    AssertEqual("remote", File.ReadAllText(System.IO.Path.Combine(saveDirectory, "slot.sav")));
+}
+
+static void SaveManifestIsDeterministicAndDetectsChanges()
+{
+    using var workspace = TempDirectory.Create();
+    var saveDirectory = System.IO.Path.Combine(workspace.Path, "Saves");
+    Directory.CreateDirectory(saveDirectory);
+    File.WriteAllText(System.IO.Path.Combine(saveDirectory, "slot.sav"), "first");
+    File.WriteAllText(System.IO.Path.Combine(saveDirectory, "settings.json"), "{}");
+    var service = new SaveManifestService();
+
+    var first = service.Create(saveDirectory);
+    var second = service.Create(saveDirectory);
+    AssertEqual(first.CombinedHash, second.CombinedHash);
+    AssertEqual(2, first.Files.Count);
+
+    File.WriteAllText(System.IO.Path.Combine(saveDirectory, "slot.sav"), "changed");
+    var changed = service.Create(saveDirectory);
+    AssertTrue(first.CombinedHash != changed.CombinedHash,
+        "Changing save contents should change the combined manifest hash.");
+}
+
+static void SaveManifestReadsZipArchives()
+{
+    using var workspace = TempDirectory.Create();
+    var saveDirectory = System.IO.Path.Combine(workspace.Path, "Saves");
+    Directory.CreateDirectory(System.IO.Path.Combine(saveDirectory, "Profile"));
+    File.WriteAllText(System.IO.Path.Combine(saveDirectory, "slot.sav"), "slot");
+    File.WriteAllText(System.IO.Path.Combine(saveDirectory, "Profile", "settings.json"), "{}");
+    var archivePath = System.IO.Path.Combine(workspace.Path, "save.zip");
+    ZipFile.CreateFromDirectory(saveDirectory, archivePath);
+    var service = new SaveManifestService();
+
+    var directoryManifest = service.Create(saveDirectory);
+    var archiveManifest = service.CreateFromArchive(archivePath);
+
+    AssertEqual(directoryManifest.CombinedHash, archiveManifest.CombinedHash);
+    AssertEqual(2, archiveManifest.Files.Count);
+}
+
+static void RestoreCreatesProtectionBackupAndEnforcesRetention()
+{
+    using var workspace = TempDirectory.Create();
+    var saveDirectory = System.IO.Path.Combine(workspace.Path, "Saves");
+    var backupRoot = System.IO.Path.Combine(workspace.Path, "Backups");
+    Directory.CreateDirectory(saveDirectory);
+    File.WriteAllText(System.IO.Path.Combine(saveDirectory, "slot.sav"), "local-before-restore");
+    var service = new LocalSaveBackupService(backupRoot, 2);
+    var game = CreateGame("protected-restore", "Protected Restore", saveDirectory);
+    var restoreZip = System.IO.Path.Combine(workspace.Path, "remote.zip");
+    CreateZipWithFile(restoreZip, "slot.sav", "remote");
+
+    service.BackupAsync(game).GetAwaiter().GetResult();
+    Thread.Sleep(20);
+    service.RestoreAsync(game, restoreZip).GetAwaiter().GetResult();
+    Thread.Sleep(20);
+    service.BackupAsync(game).GetAwaiter().GetResult();
+
+    AssertEqual("remote", File.ReadAllText(System.IO.Path.Combine(saveDirectory, "slot.sav")));
+    AssertEqual(2, service.GetBackups(game).Count);
+}
+
 static void DetailSaveCommandsCallBackupServiceAndPicker()
 {
     var game = CreateGame("detail-save-game", "Detail Save Game", @"D:\Games\DetailSave\Saves");
@@ -780,6 +1175,29 @@ static void DetailSaveCommandsCallBackupServiceAndPicker()
     AssertEqual(@"D:\Backups\Detail Save Game\backup.zip", backupService.RestoreBackupPath);
     AssertTrue(detail.SaveBackupStatusText.Contains("backup.zip", StringComparison.Ordinal),
         "Expected detail status text to mention the selected backup file.");
+}
+
+static void DetailManualSaveSyncCallsCoordinator()
+{
+    var game = CreateGame("manual-sync-game", "Manual Sync Game", @"D:\Games\ManualSync\Saves");
+    var coordinator = new RecordingSaveSyncCoordinator(
+        new SaveSyncOperationResult(true, false, "当前游戏存档已同步"));
+    var detail = new GameDetailViewModel(
+        game,
+        new ImmediateGameLauncher(new LaunchResult(DateTime.Now, TimeSpan.Zero)),
+        (current, _) => current,
+        _ => { },
+        () => { },
+        new RecordingSaveBackupService(@"D:\Backups\manual-sync.zip"),
+        new QueuedFilePickerService(),
+        new RecordingAppSettingsStore(new AppSettings()),
+        new RecordingGameSessionPresentationService(),
+        coordinator);
+
+    ((GameManager.App.Commands.AsyncRelayCommand)detail.SyncSaveCommand).ExecuteAsync(null).GetAwaiter().GetResult();
+
+    AssertEqual(game.Id, coordinator.SynchronizedGameId);
+    AssertEqual("当前游戏存档已同步", detail.SyncStatusText);
 }
 
 static void DetailViewHasSaveBackupAndRestoreButtons()
@@ -873,6 +1291,7 @@ static void DetailLoadsBackupHistoryAndRestoresSelectedBackup()
     ((GameManager.App.Commands.AsyncRelayCommand)detail.RestoreBackupCommand).ExecuteAsync(detail.SaveBackups[0]).GetAwaiter().GetResult();
 
     AssertEqual(first.Path, backupService.RestoreBackupPath);
+    AssertEqual(3, detail.SaveBackups.Count);
     AssertTrue(detail.SaveBackupStatusText.Contains("first.zip", StringComparison.Ordinal),
         "Expected status text to mention the restored history item.");
 }
@@ -934,6 +1353,60 @@ static void WebDavSettingsStoreSavesAndLoadsConfig()
     AssertEqual("FireflyGameManager", loaded.RemoteDirectory);
 }
 
+static void WebDavSettingsStoreEncryptsAndMigratesPassword()
+{
+    using var workspace = TempDirectory.Create();
+    var path = System.IO.Path.Combine(workspace.Path, "webdav-settings.json");
+    var protector = new TestSecretProtector();
+    var store = new JsonWebDavSettingsStore(path, protector);
+    store.Save(new WebDavSettings("https://example.test/", "user", "secret-value", "Firefly"));
+
+    var savedJson = File.ReadAllText(path);
+    AssertTrue(!savedJson.Contains("secret-value", StringComparison.Ordinal),
+        "Saved WebDAV settings must not contain the plaintext password.");
+    AssertTrue(savedJson.Contains("EncryptedApplicationPassword", StringComparison.Ordinal),
+        "Saved WebDAV settings should contain the encrypted password field.");
+    AssertEqual("secret-value", store.Load().ApplicationPassword);
+
+    File.WriteAllText(path,
+        """
+        {
+          "ServerUrl": "https://legacy.test/",
+          "Username": "legacy-user",
+          "ApplicationPassword": "legacy-plaintext",
+          "RemoteDirectory": "Firefly"
+        }
+        """);
+
+    var migrated = store.Load();
+    AssertEqual("legacy-plaintext", migrated.ApplicationPassword);
+    AssertTrue(!File.ReadAllText(path).Contains("legacy-plaintext", StringComparison.Ordinal),
+        "Loading a legacy plaintext config should immediately migrate it to encrypted storage.");
+}
+
+static void WebDavSettingsStoreToleratesInvalidJson()
+{
+    using var workspace = TempDirectory.Create();
+    var path = System.IO.Path.Combine(workspace.Path, "webdav-settings.json");
+    File.WriteAllText(path, "{ incomplete");
+    var store = new JsonWebDavSettingsStore(path, new TestSecretProtector());
+
+    var settings = store.Load();
+
+    AssertEqual(WebDavSettings.Default.ServerUrl, settings.ServerUrl);
+    AssertEqual(string.Empty, settings.ApplicationPassword);
+}
+
+static void WebDavSettingsViewMasksApplicationPassword()
+{
+    var xaml = File.ReadAllText(System.IO.Path.Combine("GameManager.App", "Views", "WebDavSettingsView.xaml"));
+    AssertTrue(xaml.Contains("x:Name=\"ApplicationPasswordBox\"", StringComparison.Ordinal)
+        && xaml.Contains("<PasswordBox", StringComparison.Ordinal),
+        "WebDAV application password should use a masked PasswordBox.");
+    AssertTrue(!xaml.Contains("Text=\"{Binding ApplicationPassword", StringComparison.Ordinal),
+        "The application password must not be rendered by a visible TextBox.");
+}
+
 static void WebDavConnectionTestSendsPropfindWithBasicAuth()
 {
     var handler = new RecordingHttpMessageHandler(new HttpResponseMessage((HttpStatusCode)207));
@@ -976,6 +1449,20 @@ static void WebDavConnectionTestCreatesMissingRemoteDirectory()
     AssertEqual("MKCOL", handler.Requests[1].Method.Method);
     AssertEqual("https://dav.jianguoyun.com/dav/FireflyGameManager/", handler.Requests[1].RequestUri!.ToString());
     AssertEqual("player@example.com:app-password", DecodeBasicAuth(handler.Requests[1].Headers.Authorization!));
+}
+
+static void WebDavConnectionTestReportsInvalidServerUrls()
+{
+    var service = new WebDavConnectionTestService();
+    var result = service.TestConnectionAsync(new WebDavSettings(
+        "not a valid webdav url",
+        "player@example.com",
+        "app-password",
+        "FireflyGameManager")).GetAwaiter().GetResult();
+
+    AssertTrue(!result.Success, "Invalid server addresses should be reported as connection failures.");
+    AssertTrue(result.Message.Contains("连接失败", StringComparison.Ordinal),
+        "Invalid server addresses should produce a user-facing connection failure message.");
 }
 
 static void WebDavManualSyncUploadsUserDatabase()
@@ -1224,9 +1711,44 @@ static void SqliteGameLibraryMergeAddsRemoteAndKeepsNewestGameInfo()
     AssertTrue(games.Any(game => game.Id == "remote-only"), "Expected remote-only game to be added locally.");
     var shared = games.Single(game => game.Id == "shared-game");
     AssertEqual("Remote Name", shared.Name);
-    AssertEqual(@"D:\Remote\Shared\Shared.exe", shared.ExecutablePath);
+    AssertEqual(@"D:\Games\Local Name\Local Name.exe", shared.ExecutablePath);
     AssertEqual(TimeSpan.FromSeconds(7200), shared.TotalPlayTime);
     AssertEqual(new DateTime(2026, 6, 4, 8, 0, 0, DateTimeKind.Utc), shared.LastLaunchTime!.Value.ToUniversalTime());
+}
+
+static void SqliteGameLibraryMergeAppliesRemoteDeletionTombstones()
+{
+    using var localDatabase = TempDatabase.Create();
+    using var remoteDatabase = TempDatabase.Create();
+    var local = new SqliteGameLibraryService(localDatabase.Path);
+    var game = local.AddGame(CreateAddGameRequest("Delete Across Devices"));
+    File.Copy(localDatabase.Path, remoteDatabase.Path, true);
+    var remote = new SqliteGameLibraryService(remoteDatabase.Path);
+    remote.DeleteGame(game.Id);
+
+    var mergeService = new SqliteGameLibraryMergeService();
+    mergeService.MergeRemoteIntoLocal(localDatabase.Path, remoteDatabase.Path);
+
+    AssertEqual(0, new SqliteGameLibraryService(localDatabase.Path).GetGames().Count);
+}
+
+static void SqliteGameLibraryMergePreservesRemotePlaySessions()
+{
+    using var localDatabase = TempDatabase.Create();
+    using var remoteDatabase = TempDatabase.Create();
+    var local = new SqliteGameLibraryService(localDatabase.Path, "local-machine");
+    var game = local.AddGame(CreateAddGameRequest("Legacy Session Merge"));
+    File.Copy(localDatabase.Path, remoteDatabase.Path, true);
+    var remote = new SqliteGameLibraryService(remoteDatabase.Path, "remote-machine");
+    remote.RecordLaunchResult(
+        game.Id,
+        new LaunchResult(new DateTime(2026, 6, 7, 20, 0, 0), TimeSpan.FromMinutes(45), 0));
+
+    new SqliteGameLibraryMergeService().MergeRemoteIntoLocal(localDatabase.Path, remoteDatabase.Path);
+
+    var merged = new SqliteGameLibraryService(localDatabase.Path, "local-machine");
+    AssertEqual(1, merged.GetPlaySessions(game.Id).Count);
+    AssertEqual(TimeSpan.FromMinutes(45), merged.GetGames().Single().TotalPlayTime);
 }
 
 static void SaveBackupMergeCopiesMissingAndKeepsNewestFile()
@@ -1303,7 +1825,521 @@ static void WebDavFullSyncDownloadsMergesAndUploads()
         "Expected remote game to be merged into local database.");
     AssertEqual("remote-backup", File.ReadAllText(System.IO.Path.Combine(localBackups, "Remote Game-remote-only", "remote.zip")));
     AssertEqual(localDatabasePath, manualSync.UploadedUserDataPath);
-    AssertEqual(localBackups, manualSync.UploadedSaveBackupsDirectory);
+    AssertTrue(manualSync.UploadedSaveBackupsDirectory!.EndsWith("EnabledBackups", StringComparison.Ordinal),
+        "Full sync should upload a filtered temporary backup set.");
+    var syncTemp = System.IO.Path.Combine(workspace.Path, "sync-temp");
+    AssertTrue(!Directory.Exists(syncTemp) || !Directory.EnumerateFileSystemEntries(syncTemp).Any(),
+        "Full sync should remove its per-run temporary workspace.");
+}
+
+static void WebDavV2PublishesPerGameAndPerDeviceData()
+{
+    var handler = new RecordingUploadHttpMessageHandler();
+    var service = new WebDavGameSyncService(() => new HttpClient(handler));
+    var game = new Game(
+        "v2-game",
+        "V2 Game",
+        @"D:\Games\V2\game.exe",
+        @"D:\Games\V2",
+        @"D:\Saves\V2",
+        null,
+        TimeSpan.FromMinutes(15),
+        new DateTime(2026, 6, 7, 20, 0, 0));
+    var manifest = new SaveManifest("abc", DateTime.UtcNow, []);
+    var settings = new WebDavSettings("https://dav.example/", "user", "password", "Firefly");
+
+    var result = service.UploadGameAsync(settings, game, [], "machine-one", manifest, null).GetAwaiter().GetResult();
+
+    AssertTrue(result.Success, result.Message);
+    AssertTrue(handler.Requests.Any(request => request.RequestUri!.AbsoluteUri.EndsWith("/v2/games/v2-game/metadata.json", StringComparison.Ordinal)),
+        "Expected global game metadata in the V2 per-game directory.");
+    AssertTrue(handler.Requests.Any(request => request.RequestUri!.AbsoluteUri.EndsWith("/v2/games/v2-game/paths/machine-one.json", StringComparison.Ordinal)),
+        "Expected absolute paths in a machine-specific V2 file.");
+    var metadataJson = handler.UploadedText.Single(pair => pair.Key.EndsWith("/metadata.json", StringComparison.Ordinal)).Value;
+    AssertTrue(!metadataJson.Contains(@"D:\Games\V2", StringComparison.Ordinal),
+        "Global metadata must not contain machine-specific absolute paths.");
+}
+
+static void WebDavV2PreservesRemotePlaySessionIndex()
+{
+    var handler = new RecordingUploadHttpMessageHandler();
+    var metadataUri = "https://dav.example/Firefly/v2/games/v2-game/metadata.json";
+    handler.RespondWithText(
+        "GET",
+        metadataUri,
+        """
+        {
+          "Id": "v2-game",
+          "Name": "V2 Game",
+          "TotalPlaySeconds": 60,
+          "UpdatedAtUtc": "2026-06-07T12:00:00Z",
+          "PlaySessionIds": [ "remote-session" ]
+        }
+        """);
+    var service = new WebDavGameSyncService(() => new HttpClient(handler));
+    var game = new Game("v2-game", "V2 Game", "game.exe", "game", "save", null, TimeSpan.Zero, null);
+    var localSession = new PlaySession(
+        "local-session",
+        game.Id,
+        "machine-one",
+        new DateTime(2026, 6, 7, 13, 0, 0, DateTimeKind.Utc),
+        new DateTime(2026, 6, 7, 13, 5, 0, DateTimeKind.Utc),
+        TimeSpan.FromMinutes(5));
+
+    var result = service.UploadGameAsync(
+        new WebDavSettings("https://dav.example/", "user", "password", "Firefly"),
+        game,
+        [localSession],
+        "machine-one",
+        null,
+        null).GetAwaiter().GetResult();
+
+    AssertTrue(result.Success, result.Message);
+    var uploadedMetadata = handler.UploadedText[metadataUri];
+    AssertTrue(uploadedMetadata.Contains("remote-session", StringComparison.Ordinal)
+        && uploadedMetadata.Contains("local-session", StringComparison.Ordinal),
+        "Uploading from one machine must preserve play-session ids already published by another machine.");
+}
+
+static void WebDavV2UploadPreservesNewerRemoteGameInfo()
+{
+    var handler = new RecordingUploadHttpMessageHandler();
+    var metadataUri = "https://dav.example/Firefly/v2/games/metadata-conflict/metadata.json";
+    handler.RespondWithText(
+        "GET",
+        metadataUri,
+        """
+        {
+          "Id": "metadata-conflict",
+          "Name": "New Cloud Name",
+          "CoverFileName": "cloud-cover.jpg",
+          "TotalPlaySeconds": 60,
+          "UpdatedAtUtc": "2026-06-07T12:00:00Z",
+          "PlaySessionIds": []
+        }
+        """);
+    var service = new WebDavGameSyncService(() => new HttpClient(handler));
+    var staleLocal = new Game(
+        "metadata-conflict",
+        "Stale Local Name",
+        "game.exe",
+        "game",
+        "save",
+        null,
+        TimeSpan.Zero,
+        null,
+        updatedAtUtc: new DateTime(2026, 6, 1, 12, 0, 0, DateTimeKind.Utc));
+
+    var result = service.UploadGameAsync(
+        new WebDavSettings("https://dav.example/", "user", "password", "Firefly"),
+        staleLocal,
+        [],
+        "machine-one",
+        null,
+        null).GetAwaiter().GetResult();
+
+    AssertTrue(result.Success, result.Message);
+    var uploadedMetadata = handler.UploadedText[metadataUri];
+    AssertTrue(uploadedMetadata.Contains("New Cloud Name", StringComparison.Ordinal)
+        && !uploadedMetadata.Contains("Stale Local Name", StringComparison.Ordinal),
+        "A stale device must not overwrite newer global game information while uploading sessions or saves.");
+}
+
+static void WebDavV2PublishesSaveArchiveBeforeManifest()
+{
+    using var workspace = TempDirectory.Create();
+    var backupPath = System.IO.Path.Combine(workspace.Path, "latest.zip");
+    File.WriteAllText(backupPath, "zip-bytes");
+    var handler = new RecordingUploadHttpMessageHandler();
+    var service = new WebDavGameSyncService(() => new HttpClient(handler));
+    var game = new Game("ordered-save-game", "Ordered Save Game", "game.exe", "game", "save", null, TimeSpan.Zero, null);
+
+    var result = service.UploadGameAsync(
+        new WebDavSettings("https://dav.example/", "user", "password", "Firefly"),
+        game,
+        [],
+        "machine-one",
+        new SaveManifest("manifest-hash", DateTime.UtcNow, []),
+        backupPath).GetAwaiter().GetResult();
+
+    AssertTrue(result.Success, result.Message);
+    var putUris = handler.Requests
+        .Where(request => request.Method == HttpMethod.Put)
+        .Select(request => request.RequestUri!.AbsoluteUri)
+        .ToList();
+    var archiveIndex = putUris.FindIndex(uri => uri.EndsWith("/saves/latest.zip", StringComparison.Ordinal));
+    var manifestIndex = putUris.FindIndex(uri => uri.EndsWith("/saves/save-manifest.json", StringComparison.Ordinal));
+    AssertTrue(archiveIndex >= 0 && manifestIndex > archiveIndex,
+        "latest.zip must upload successfully before save-manifest.json commits the new cloud save.");
+}
+
+static void WebDavV2CoverDownloadPreservesRemoteFilename()
+{
+    using var workspace = TempDirectory.Create();
+    var handler = new RecordingDownloadHttpMessageHandler();
+    handler.RespondWithText(
+        "GET",
+        "https://dav.jianguoyun.com/dav/FireflyGameManager/v2/games/cover-game/cover/cover.jpg",
+        "cover-bytes");
+    var service = new WebDavGameSyncService(() => new HttpClient(handler));
+    var coverRoot = System.IO.Path.Combine(workspace.Path, "CoverCache");
+
+    var path = service.DownloadCoverAsync(
+        CreateWebDavSettings(),
+        new GameCloudMetadata
+        {
+            Id = "cover-game",
+            Name = "Cover Game",
+            CoverFileName = "cover.jpg",
+            UpdatedAtUtc = DateTime.UtcNow
+        },
+        coverRoot).GetAwaiter().GetResult();
+
+    AssertTrue(path is not null, "Expected cloud cover to be downloaded.");
+    AssertEqual("cover.jpg", System.IO.Path.GetFileName(path!));
+    AssertEqual("cover-game", System.IO.Path.GetFileName(System.IO.Path.GetDirectoryName(path!)!));
+}
+
+static void WebDavFullSyncRestoresMatchingMachinePaths()
+{
+    using var workspace = TempDirectory.Create();
+    var localDatabasePath = System.IO.Path.Combine(workspace.Path, "app.db");
+    InsertGameRow(
+        localDatabasePath,
+        id: "path-game",
+        name: "Path Game",
+        totalPlaySeconds: 0,
+        lastLaunchTime: string.Empty,
+        sortOrder: 0,
+        createdAt: "2026-06-01T00:00:00.0000000Z",
+        updatedAt: "2026-06-01T08:00:00.0000000Z",
+        executablePath: @"C:\Local\keep.exe",
+        gameRootPath: string.Empty,
+        savePath: string.Empty);
+    var remoteDatabasePath = System.IO.Path.Combine(workspace.Path, "remote.db");
+    InsertGameRow(
+        remoteDatabasePath,
+        id: "path-game",
+        name: "Path Game",
+        totalPlaySeconds: 0,
+        lastLaunchTime: string.Empty,
+        sortOrder: 0,
+        createdAt: "2026-06-01T00:00:00.0000000Z",
+        updatedAt: "2026-06-01T08:00:00.0000000Z");
+    var remoteBackups = System.IO.Path.Combine(workspace.Path, "RemoteBackups");
+    Directory.CreateDirectory(remoteBackups);
+    var gameSync = new RecordingWebDavGameSyncService(
+        new GameCloudMetadata { Id = "path-game", Name = "Path Game", UpdatedAtUtc = DateTime.UtcNow },
+        new MachineGamePath
+        {
+            MachineId = "machine-one",
+            ExecutablePath = @"D:\Cloud\must-not-overwrite.exe",
+            GameRootPath = @"D:\Cloud\PathGame",
+            SavePath = @"C:\CloudSaves\PathGame",
+            LaunchArguments = "-cloud",
+            WorkingDirectory = @"D:\Cloud\PathGame\Bin",
+            MonitorProcessName = "PathGame"
+        });
+    var fullSync = new WebDavFullSyncService(
+        new RecordingFullSyncManualSyncService(remoteDatabasePath, remoteBackups),
+        new SqliteGameLibraryMergeService(),
+        new SaveBackupMergeService(),
+        () => System.IO.Path.Combine(workspace.Path, "sync-temp"),
+        gameSync,
+        new SaveManifestService(),
+        "machine-one");
+
+    var result = fullSync.SynchronizeAsync(
+        CreateWebDavSettings(),
+        localDatabasePath,
+        System.IO.Path.Combine(workspace.Path, "SaveBackups")).GetAwaiter().GetResult();
+
+    AssertTrue(result.Success, result.Message);
+    var game = new SqliteGameLibraryService(localDatabasePath, "machine-one").GetGames().Single();
+    AssertEqual(@"C:\Local\keep.exe", game.ExecutablePath);
+    AssertEqual(@"D:\Cloud\PathGame", game.GameRootPath);
+    AssertEqual(@"C:\CloudSaves\PathGame", game.SavePath);
+    AssertEqual("-cloud", game.LaunchArguments);
+    AssertEqual(@"D:\Cloud\PathGame\Bin", game.WorkingDirectory);
+    AssertEqual("PathGame", game.MonitorProcessName);
+}
+
+static void SqliteMachinePathImportToleratesNullLegacyFields()
+{
+    using var database = TempDatabase.Create();
+    var service = new SqliteGameLibraryService(database.Path);
+    service.MergeCloudMetadata(
+    [
+        new GameCloudMetadata
+        {
+            Id = "legacy-machine-path",
+            Name = "Legacy Machine Path",
+            UpdatedAtUtc = DateTime.UtcNow
+        }
+    ]);
+
+    service.ApplyMachinePath(
+        "legacy-machine-path",
+        new MachineGamePath
+        {
+            MachineId = "machine-a",
+            ExecutablePath = @"D:\Games\Legacy\Game.exe",
+            GameRootPath = null!,
+            SavePath = null!,
+            LaunchArguments = null!,
+            WorkingDirectory = null!,
+            MonitorProcessName = null!
+        });
+
+    var game = service.GetGames().Single();
+    AssertEqual(@"D:\Games\Legacy\Game.exe", game.ExecutablePath);
+    AssertEqual(string.Empty, game.GameRootPath);
+    AssertEqual(string.Empty, game.SavePath);
+}
+
+static void StartupCloudMetadataPullMergesGameList()
+{
+    using var database = TempDatabase.Create();
+    using var workspace = TempDirectory.Create();
+    var library = new SqliteGameLibraryService(database.Path, "machine-one");
+    var gameSync = new RecordingWebDavGameSyncService(
+        new GameCloudMetadata
+        {
+            Id = "startup-cloud-game",
+            Name = "Startup Cloud Game",
+            UpdatedAtUtc = DateTime.UtcNow
+        },
+        new MachineGamePath
+        {
+            MachineId = "machine-one",
+            ExecutablePath = @"D:\Games\Startup\game.exe",
+            GameRootPath = @"D:\Games\Startup",
+            SavePath = @"C:\Saves\Startup"
+        });
+    var service = new WebDavCloudMetadataPullService(
+        library,
+        gameSync,
+        new InMemorySyncLogService(),
+        "machine-one",
+        System.IO.Path.Combine(workspace.Path, "CoverCache"));
+
+    var result = service.PullAsync(CreateWebDavSettings()).GetAwaiter().GetResult();
+
+    AssertTrue(result.Success, result.Message);
+    var game = library.GetGames().Single();
+    AssertEqual("Startup Cloud Game", game.Name);
+    AssertEqual(@"D:\Games\Startup\game.exe", game.ExecutablePath);
+    AssertEqual(@"C:\Saves\Startup", game.SavePath);
+}
+
+static void StartupCloudMetadataPullIsolatesPerGameFailures()
+{
+    using var database = TempDatabase.Create();
+    using var workspace = TempDirectory.Create();
+    var library = new SqliteGameLibraryService(database.Path, "machine-one");
+    var gameSync = new StartupPullGameSyncService(
+    [
+        new GameCloudMetadata { Id = "broken-game", Name = "Broken", UpdatedAtUtc = DateTime.UtcNow },
+        new GameCloudMetadata { Id = "healthy-game", Name = "Healthy", UpdatedAtUtc = DateTime.UtcNow }
+    ]);
+    gameSync.FailingMachinePathGameIds.Add("broken-game");
+    gameSync.MachinePaths["healthy-game"] = new MachineGamePath
+    {
+        MachineId = "machine-one",
+        ExecutablePath = @"D:\Games\Healthy\game.exe"
+    };
+
+    var result = new WebDavCloudMetadataPullService(
+        library, gameSync, new InMemorySyncLogService(), "machine-one", workspace.Path)
+        .PullAsync(CreateWebDavSettings()).GetAwaiter().GetResult();
+
+    AssertTrue(result.Success, result.Message);
+    AssertEqual(@"D:\Games\Healthy\game.exe", library.GetGames().Single(game => game.Id == "healthy-game").ExecutablePath);
+}
+
+static void StartupCloudMetadataPullPreservesNewerLocalCover()
+{
+    using var database = TempDatabase.Create();
+    using var workspace = TempDirectory.Create();
+    var localCover = System.IO.Path.Combine(workspace.Path, "local.jpg");
+    File.WriteAllText(localCover, "local");
+    var library = new SqliteGameLibraryService(database.Path);
+    var local = library.AddGame(new AddGameRequest("Local Cover", "game.exe", "game", "save", localCover));
+    var gameSync = new StartupPullGameSyncService(
+    [
+        new GameCloudMetadata
+        {
+            Id = local.Id,
+            Name = "Stale Cloud",
+            CoverFileName = "cloud.jpg",
+            UpdatedAtUtc = local.UpdatedAtUtc.AddDays(-1)
+        }
+    ]);
+    gameSync.CoverPaths[local.Id] = System.IO.Path.Combine(workspace.Path, "cloud.jpg");
+
+    new WebDavCloudMetadataPullService(library, gameSync, new InMemorySyncLogService(), "machine-one", workspace.Path)
+        .PullAsync(CreateWebDavSettings()).GetAwaiter().GetResult();
+
+    AssertEqual(localCover, library.GetGames().Single().CoverImagePath);
+    AssertEqual(0, gameSync.CoverDownloadCalls);
+}
+
+static void StartupCloudMetadataPullAppliesRemoteCoverRemoval()
+{
+    using var database = TempDatabase.Create();
+    using var workspace = TempDirectory.Create();
+    var localCover = System.IO.Path.Combine(workspace.Path, "local.jpg");
+    File.WriteAllText(localCover, "local");
+    var library = new SqliteGameLibraryService(database.Path);
+    var local = library.AddGame(new AddGameRequest("Cover Removal", "game.exe", "game", "save", localCover));
+    var gameSync = new StartupPullGameSyncService(
+    [
+        new GameCloudMetadata
+        {
+            Id = local.Id,
+            Name = local.Name,
+            CoverFileName = null,
+            UpdatedAtUtc = local.UpdatedAtUtc.AddDays(1)
+        }
+    ]);
+
+    new WebDavCloudMetadataPullService(library, gameSync, new InMemorySyncLogService(), "machine-one", workspace.Path)
+        .PullAsync(CreateWebDavSettings()).GetAwaiter().GetResult();
+
+    AssertEqual<string?>(null, library.GetGames().Single().CoverImagePath);
+}
+
+static void SaveSyncPromptsBeforeDownloadingNewerCloudSave()
+{
+    using var workspace = TempDirectory.Create();
+    var saveDirectory = System.IO.Path.Combine(workspace.Path, "Saves");
+    Directory.CreateDirectory(saveDirectory);
+    File.WriteAllText(System.IO.Path.Combine(saveDirectory, "slot.sav"), "local");
+    var game = CreateGame("cloud-newer-game", "Cloud Newer Game", saveDirectory);
+    var manifestService = new SaveManifestService();
+    var localManifest = manifestService.Create(saveDirectory);
+    var stateStore = new InMemorySaveSyncStateStore();
+    stateStore.Save(new SaveSyncState(
+        game.Id,
+        localManifest.CombinedHash,
+        localManifest.CombinedHash,
+        localManifest.CombinedHash,
+        "synced",
+        DateTime.UtcNow));
+    var cloud = new ConfigurableWebDavGameSyncService
+    {
+        RemoteManifest = new SaveManifest("remote-newer-hash", DateTime.UtcNow, [])
+    };
+    var coordinator = new SaveSyncCoordinator(
+        new RecordingWebDavSettingsStore(),
+        new RecordingAppSettingsStore(new AppSettings { AutoSyncBeforeGameLaunch = true }),
+        cloud,
+        manifestService,
+        new RecordingSaveBackupService(System.IO.Path.Combine(workspace.Path, "backup.zip")),
+        stateStore,
+        new InMemorySyncLogService(),
+        "machine-one");
+
+    var result = coordinator.CheckBeforeLaunchAsync(game).GetAwaiter().GetResult();
+
+    AssertTrue(result.RequiresCloudDownloadConfirmation,
+        "A newer cloud save should require user confirmation before replacing local files.");
+    AssertEqual(0, cloud.DownloadLatestCalls);
+    AssertEqual("cloud-newer", stateStore.Get(game.Id)!.Status);
+}
+
+static void SaveSyncCanRestoreWhenLocalSaveDirectoryIsMissing()
+{
+    using var workspace = TempDirectory.Create();
+    var saveDirectory = System.IO.Path.Combine(workspace.Path, "MissingSaves");
+    var game = CreateGame("missing-save-game", "Missing Save Game", saveDirectory);
+    var manifestService = new SaveManifestService();
+    var emptyHash = manifestService.Create(saveDirectory).CombinedHash;
+    var stateStore = new InMemorySaveSyncStateStore();
+    stateStore.Save(new SaveSyncState(
+        game.Id,
+        emptyHash,
+        emptyHash,
+        emptyHash,
+        "synced",
+        DateTime.UtcNow));
+    var coordinator = new SaveSyncCoordinator(
+        new RecordingWebDavSettingsStore(),
+        new RecordingAppSettingsStore(new AppSettings { AutoSyncBeforeGameLaunch = true }),
+        new ConfigurableWebDavGameSyncService
+        {
+            RemoteManifest = new SaveManifest("remote-newer-hash", DateTime.UtcNow, [])
+        },
+        manifestService,
+        new RecordingSaveBackupService(System.IO.Path.Combine(workspace.Path, "backup.zip")),
+        stateStore,
+        new InMemorySyncLogService(),
+        "machine-one");
+
+    var result = coordinator.CheckBeforeLaunchAsync(game).GetAwaiter().GetResult();
+
+    AssertTrue(result.RequiresCloudDownloadConfirmation,
+        "A missing local save directory must still allow the user to restore a cloud save.");
+}
+
+static void SaveSyncFailuresRemainRetryPending()
+{
+    using var workspace = TempDirectory.Create();
+    var saveDirectory = System.IO.Path.Combine(workspace.Path, "Saves");
+    Directory.CreateDirectory(saveDirectory);
+    File.WriteAllText(System.IO.Path.Combine(saveDirectory, "slot.sav"), "local");
+    var game = CreateGame("retry-game", "Retry Game", saveDirectory);
+    var stateStore = new InMemorySaveSyncStateStore();
+    var cloud = new ConfigurableWebDavGameSyncService
+    {
+        UploadResult = new WebDavGameSyncResult(false, "network unavailable")
+    };
+    var coordinator = new SaveSyncCoordinator(
+        new RecordingWebDavSettingsStore(),
+        new RecordingAppSettingsStore(new AppSettings { AutoSyncAfterGameExit = true }),
+        cloud,
+        new SaveManifestService(),
+        new RecordingSaveBackupService(System.IO.Path.Combine(workspace.Path, "backup.zip")),
+        stateStore,
+        new InMemorySyncLogService(),
+        "machine-one");
+
+    var result = coordinator.SyncAfterExitAsync(game).GetAwaiter().GetResult();
+
+    AssertTrue(!result.Success, "Failed uploads should be reported to the UI.");
+    AssertEqual("retry-pending", stateStore.Get(game.Id)!.Status);
+}
+
+static void SaveSyncVerifiesRestoredCloudArchive()
+{
+    using var workspace = TempDirectory.Create();
+    var saveDirectory = System.IO.Path.Combine(workspace.Path, "Saves");
+    Directory.CreateDirectory(saveDirectory);
+    File.WriteAllText(System.IO.Path.Combine(saveDirectory, "slot.sav"), "local");
+    var game = CreateGame("verify-cloud-game", "Verify Cloud Game", saveDirectory);
+    var stateStore = new InMemorySaveSyncStateStore();
+    var cloud = new ConfigurableWebDavGameSyncService
+    {
+        RemoteManifest = new SaveManifest("does-not-match-the-archive", DateTime.UtcNow, []),
+        DownloadLatestContent = "remote"
+    };
+    var coordinator = new SaveSyncCoordinator(
+        new RecordingWebDavSettingsStore(),
+        new RecordingAppSettingsStore(new AppSettings()),
+        cloud,
+        new SaveManifestService(),
+        new LocalSaveBackupService(System.IO.Path.Combine(workspace.Path, "Backups")),
+        stateStore,
+        new InMemorySyncLogService(),
+        "machine-one");
+
+    var result = coordinator.ResolveConflictAsync(game, SaveConflictResolution.UseCloud).GetAwaiter().GetResult();
+
+    AssertTrue(!result.Success, "A restored archive that does not match its manifest must not be marked synchronized.");
+    AssertEqual("retry-pending", stateStore.Get(game.Id)!.Status);
+    AssertTrue(!string.IsNullOrWhiteSpace(cloud.LastDownloadDestination)
+        && !File.Exists(cloud.LastDownloadDestination),
+        "Temporary cloud save archives should be deleted after restore attempts.");
 }
 
 static void WebDavSettingsUploadCommandsCallSyncService()
@@ -1415,6 +2451,23 @@ static void WebDavSettingsFullSyncCommandCallsSyncService()
         "Expected sync status text to show the full sync result.");
 }
 
+static void WebDavSettingsFullSyncReportsThrownFailures()
+{
+    var settings = new WebDavSettingsViewModel(
+        new RecordingWebDavSettingsStore(),
+        new RecordingWebDavConnectionTester(true, "连接成功"),
+        new RecordingWebDavManualSyncService(),
+        new ThrowingWebDavFullSyncService("network unavailable"),
+        () => { },
+        @"D:\Local\app.db",
+        @"D:\Local\SaveBackups");
+
+    ((GameManager.App.Commands.AsyncRelayCommand)settings.FullSyncCommand).ExecuteAsync(null).GetAwaiter().GetResult();
+
+    AssertTrue(settings.SyncStatusText.Contains("network unavailable", StringComparison.Ordinal),
+        "Thrown full-sync failures should be shown in the sync center instead of escaping to the UI thread.");
+}
+
 static void WebDavSettingsViewHasFullSyncButton()
 {
     var xaml = File.ReadAllText(System.IO.Path.Combine("GameManager.App", "Views", "WebDavSettingsView.xaml"));
@@ -1437,6 +2490,8 @@ static void WebDavSettingsViewGroupsSyncCenterAndAdvancedActions()
         "Settings view should use shared section cards instead of loose stacked controls.");
     AssertTrue(xaml.Contains("Style=\"{StaticResource PrimaryButtonStyle}\"", StringComparison.Ordinal),
         "Full sync should use the shared primary button style.");
+    AssertTrue(xaml.Contains("BasedOn=\"{StaticResource ModernScrollBarStyle}\"", StringComparison.Ordinal),
+        "Sync settings should use the shared modern scrollbar instead of the system default.");
 }
 
 static void WebDavSyncStrategyIsShownAsTooltip()
@@ -1637,6 +2692,9 @@ static void AppSettingsStoreSavesAllSchemeAPreferences()
         MinimizeAfterGameLaunch = true,
         RestoreAfterGameExit = true,
         BackupBeforeGameLaunch = true,
+        AutoSyncBeforeGameLaunch = true,
+        AutoSyncAfterGameExit = true,
+        BackupRetentionCount = 10,
         DefaultSort = GameSortMode.PlayTime,
         CardSize = GameCardSize.Large,
         ShowPlayTimeOnCards = true,
@@ -1651,6 +2709,9 @@ static void AppSettingsStoreSavesAllSchemeAPreferences()
     AssertEqual(expected.LastPage, actual.LastPage);
     AssertEqual(expected.Language, actual.Language);
     AssertEqual(expected.BackupBeforeGameLaunch, actual.BackupBeforeGameLaunch);
+    AssertEqual(expected.AutoSyncBeforeGameLaunch, actual.AutoSyncBeforeGameLaunch);
+    AssertEqual(expected.AutoSyncAfterGameExit, actual.AutoSyncAfterGameExit);
+    AssertEqual(expected.BackupRetentionCount, actual.BackupRetentionCount);
     AssertEqual(expected.DefaultSort, actual.DefaultSort);
     AssertEqual(expected.CardSize, actual.CardSize);
     AssertEqual(expected.ScanDirectory, actual.ScanDirectory);
@@ -1667,7 +2728,10 @@ static void SqlitePersistsPerGameLaunchOptions()
         @"C:\Saves\Configured",
         null,
         "-windowed -skipintro",
-        true);
+        true,
+        @"D:\Games\Configured\Bin",
+        "ConfiguredGame",
+        false);
 
     var game = service.AddGame(request);
     var reloaded = new SqliteGameLibraryService(database.Path).GetGames().Single();
@@ -1676,6 +2740,9 @@ static void SqlitePersistsPerGameLaunchOptions()
     AssertTrue(game.RunAsAdministrator, "Expected administrator launch setting.");
     AssertEqual(game.LaunchArguments, reloaded.LaunchArguments);
     AssertEqual(game.RunAsAdministrator, reloaded.RunAsAdministrator);
+    AssertEqual(@"D:\Games\Configured\Bin", reloaded.WorkingDirectory);
+    AssertEqual("ConfiguredGame", reloaded.MonitorProcessName);
+    AssertTrue(!reloaded.SyncEnabled, "Expected per-game sync toggle to persist.");
 }
 
 static void GameLibraryAppliesDisplayPreferences()
@@ -1700,6 +2767,21 @@ static void GameLibraryAppliesDisplayPreferences()
     AssertTrue(library.ShowPlayTimeOnCards, "Expected play time labels to be visible.");
 }
 
+static void GameLibrarySearchFiltersByName()
+{
+    var games = new[]
+    {
+        CreateGame("search-one", "Winter Melody", @"C:\Saves\One"),
+        CreateGame("search-two", "Summer Story", @"C:\Saves\Two")
+    };
+    var library = new GameLibraryViewModel(games, _ => { }, _ => { }, _ => { }, _ => { });
+
+    library.SearchText = "winter";
+
+    AssertEqual(1, library.Games.Count);
+    AssertEqual("Winter Melody", library.Games[0].Name);
+}
+
 static void LocalGameDiscoveryFindsExecutableCandidatesAndSkipsDuplicates()
 {
     using var workspace = TempDirectory.Create();
@@ -1720,7 +2802,10 @@ static void LocalGameDiscoveryFindsExecutableCandidatesAndSkipsDuplicates()
 
 static void LaunchWorkflowBacksUpMinimizesAndRestores()
 {
-    var game = CreateGame("launch-workflow", "Launch Workflow", @"C:\Saves\LaunchWorkflow");
+    using var workspace = TempDirectory.Create();
+    var saveDirectory = System.IO.Path.Combine(workspace.Path, "Saves");
+    Directory.CreateDirectory(saveDirectory);
+    var game = CreateGame("launch-workflow", "Launch Workflow", saveDirectory);
     var launcher = new ImmediateGameLauncher(new LaunchResult(DateTime.Now, TimeSpan.FromMinutes(5)));
     var backup = new RecordingSaveBackupService(@"C:\Backups\launch.zip");
     var presentation = new RecordingGameSessionPresentationService();
@@ -1746,6 +2831,16 @@ static void LaunchWorkflowBacksUpMinimizesAndRestores()
     AssertEqual(game.Id, backup.BackupGameId);
     AssertEqual(1, presentation.MinimizeCalls);
     AssertEqual(1, presentation.RestoreCalls);
+}
+
+static void ProcessLauncherMonitorsConfiguredGameBeforeLauncherExit()
+{
+    var source = File.ReadAllText(System.IO.Path.Combine("GameManager.App", "Services", "ProcessGameLauncher.cs"));
+    var monitorCall = source.IndexOf("await WaitForNewProcessAsync", StringComparison.Ordinal);
+    var launcherWait = source.IndexOf("await process.WaitForExitAsync()", StringComparison.Ordinal);
+
+    AssertTrue(monitorCall >= 0 && launcherWait >= 0 && monitorCall < launcherWait,
+        "Configured monitored processes should be resolved before falling back to waiting for a possibly persistent launcher.");
 }
 
 static void LaunchWorkflowReportsFailuresWithoutThrowing()
@@ -1908,6 +3003,358 @@ static void WallpaperPaletteKeepsColorfulAccentOverNeutralMajority()
         "Glass surfaces should inherit part of the selected wallpaper accent.");
 }
 
+static void AddsGameWithoutSaveDirectory()
+{
+    AddGameRequest? saved = null;
+    var viewModel = new AddGameViewModel(new QueuedFilePickerService(), request => saved = request, () => { });
+    viewModel.GameName = "No Save Game";
+    viewModel.ExecutablePath = @"D:\Games\NoSave\game.exe";
+    viewModel.GameRootPath = @"D:\Games\NoSave";
+
+    AssertTrue(viewModel.SaveCommand.CanExecute(null), "Save directory should be optional when adding a game.");
+    viewModel.SaveCommand.Execute(null);
+    AssertEqual(string.Empty, saved!.SavePath);
+
+    var xaml = File.ReadAllText(System.IO.Path.Combine("GameManager.App", "Views", "AddGameView.xaml"));
+    AssertTrue(xaml.Contains("存档目录（可选）", StringComparison.Ordinal),
+        "The add game form should explain that the save directory is optional.");
+}
+
+static void SqlitePathOnlyEditKeepsMetadataTimestamp()
+{
+    using var database = TempDatabase.Create();
+    var service = new SqliteGameLibraryService(database.Path);
+    var game = service.AddGame(CreateAddGameRequest("Path Only"));
+
+    var updated = service.UpdateGame(new UpdateGameRequest(
+        game.Id,
+        game.Name,
+        @"D:\Games\PathOnly\moved.exe",
+        @"D:\Games\PathOnly",
+        @"C:\Saves\PathOnly",
+        game.CoverImagePath,
+        "-windowed",
+        true,
+        @"D:\Games\PathOnly",
+        "PathOnly",
+        false));
+
+    AssertEqual(game.UpdatedAtUtc, updated.UpdatedAtUtc);
+    AssertEqual(game.UpdatedAtUtc, new SqliteGameLibraryService(database.Path).GetGames().Single().UpdatedAtUtc);
+}
+
+static void DetailFirstLaunchSkipsMissingSaveDirectoryBackup()
+{
+    using var workspace = TempDirectory.Create();
+    var missingSavePath = System.IO.Path.Combine(workspace.Path, "NotCreated");
+    var game = CreateGame("first-launch", "First Launch", missingSavePath);
+    var backup = new RecordingSaveBackupService(System.IO.Path.Combine(workspace.Path, "backup.zip"));
+    var detail = new GameDetailViewModel(
+        game,
+        new ImmediateGameLauncher(new LaunchResult(DateTime.Now, TimeSpan.FromMinutes(1))),
+        (current, _) => current,
+        _ => { },
+        () => { },
+        backup,
+        new QueuedFilePickerService(),
+        new RecordingAppSettingsStore(new AppSettings { BackupBeforeGameLaunch = true }),
+        new RecordingGameSessionPresentationService());
+
+    ((GameManager.App.Commands.AsyncRelayCommand)detail.StartGameCommand).ExecuteAsync(null).GetAwaiter().GetResult();
+
+    AssertEqual<string?>(null, backup.BackupGameId);
+    AssertTrue(detail.LaunchStatusText.Contains("退出", StringComparison.Ordinal) ||
+        detail.LaunchStatusText.Contains("记录", StringComparison.Ordinal),
+        "A missing optional save directory must not block first launch.");
+}
+
+static void RestoreFailureRollsBackOriginalSaves()
+{
+    using var workspace = TempDirectory.Create();
+    var saveDirectory = System.IO.Path.Combine(workspace.Path, "Saves");
+    Directory.CreateDirectory(saveDirectory);
+    var original = System.IO.Path.Combine(saveDirectory, "slot.sav");
+    File.WriteAllText(original, "original");
+    var invalidArchive = System.IO.Path.Combine(workspace.Path, "invalid.zip");
+    File.WriteAllText(invalidArchive, "not-a-zip");
+    var service = new LocalSaveBackupService(System.IO.Path.Combine(workspace.Path, "Backups"));
+    var game = CreateGame("rollback-game", "Rollback Game", saveDirectory);
+
+    try
+    {
+        service.RestoreAsync(game, invalidArchive).GetAwaiter().GetResult();
+        throw new InvalidOperationException("Expected invalid restore archive to fail.");
+    }
+    catch (InvalidDataException)
+    {
+    }
+
+    AssertEqual("original", File.ReadAllText(original));
+}
+
+static void LocalSaveBackupHistorySurvivesGameRename()
+{
+    using var workspace = TempDirectory.Create();
+    var saveDirectory = System.IO.Path.Combine(workspace.Path, "Saves");
+    Directory.CreateDirectory(saveDirectory);
+    File.WriteAllText(System.IO.Path.Combine(saveDirectory, "slot.sav"), "save");
+    var service = new LocalSaveBackupService(System.IO.Path.Combine(workspace.Path, "Backups"));
+    var original = CreateGame("rename-game", "Original Name", saveDirectory);
+    var backup = service.BackupAsync(original).GetAwaiter().GetResult();
+    var renamed = CreateGame("rename-game", "Renamed Game", saveDirectory);
+
+    AssertEqual(System.IO.Path.GetDirectoryName(backup), service.GetBackupDirectory(renamed));
+    AssertEqual(1, service.GetBackups(renamed).Count);
+}
+
+static void WebDavConnectionTestCreatesNestedRemoteDirectories()
+{
+    var handler = new SequentialHttpMessageHandler(
+        new HttpResponseMessage(HttpStatusCode.NotFound),
+        new HttpResponseMessage(HttpStatusCode.Created),
+        new HttpResponseMessage(HttpStatusCode.Created));
+    var service = new WebDavConnectionTestService(() => new HttpClient(handler));
+    var settings = new WebDavSettings("https://dav.example/", "user", "password", "Apps/Firefly");
+
+    var result = service.TestConnectionAsync(settings).GetAwaiter().GetResult();
+
+    AssertTrue(result.Success, result.Message);
+    var mkcols = handler.Requests.Where(request => request.Method.Method == "MKCOL")
+        .Select(request => request.RequestUri!.AbsoluteUri).ToList();
+    AssertEqual(2, mkcols.Count);
+    AssertEqual("https://dav.example/Apps/", mkcols[0]);
+    AssertEqual("https://dav.example/Apps/Firefly/", mkcols[1]);
+}
+
+static void WebDavManualSyncTreatsMissingRemoteDataAsEmpty()
+{
+    using var workspace = TempDirectory.Create();
+    var service = new WebDavManualSyncService(() => new HttpClient(new RecordingDownloadHttpMessageHandler()));
+
+    var user = service.DownloadUserDataAsync(CreateWebDavSettings(), System.IO.Path.Combine(workspace.Path, "app.db"))
+        .GetAwaiter().GetResult();
+    var backups = service.DownloadSaveBackupsAsync(CreateWebDavSettings(), System.IO.Path.Combine(workspace.Path, "Backups"))
+        .GetAwaiter().GetResult();
+
+    AssertTrue(user.Success && backups.Success, "Missing remote legacy data should be treated as an empty first sync.");
+    AssertEqual(0, user.FailedCount);
+    AssertEqual(0, backups.FailedCount);
+}
+
+static void WebDavV2PerGameUploadRegistersIndex()
+{
+    var handler = new RecordingUploadHttpMessageHandler();
+    var service = new WebDavGameSyncService(() => new HttpClient(handler));
+    var game = CreateGame("registered-game", "Registered Game", string.Empty);
+
+    var result = service.UploadGameAsync(CreateWebDavSettings(), game, [], "machine-one", null, null)
+        .GetAwaiter().GetResult();
+
+    AssertTrue(result.Success, result.Message);
+    var index = handler.UploadedText["https://dav.jianguoyun.com/dav/FireflyGameManager/v2/games-index.json"];
+    AssertTrue(index.Contains("registered-game", StringComparison.Ordinal),
+        "A single-game upload must make the game discoverable through the V2 index.");
+}
+
+static void WebDavV2StaleUploadDoesNotOverwriteNewerCover()
+{
+    using var workspace = TempDirectory.Create();
+    var cover = System.IO.Path.Combine(workspace.Path, "stale.jpg");
+    File.WriteAllText(cover, "stale-cover");
+    var handler = new RecordingUploadHttpMessageHandler();
+    handler.RespondWithText(
+        "GET",
+        "https://dav.example/Firefly/v2/games/cover-conflict/metadata.json",
+        """
+        {
+          "Id": "cover-conflict",
+          "Name": "Cloud Game",
+          "CoverFileName": "new-cover.jpg",
+          "UpdatedAtUtc": "2026-06-07T12:00:00Z",
+          "PlaySessionIds": []
+        }
+        """);
+    var game = new Game(
+        "cover-conflict", "Stale Game", "game.exe", "game", "save", cover, TimeSpan.Zero, null,
+        updatedAtUtc: new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc));
+
+    var result = new WebDavGameSyncService(() => new HttpClient(handler)).UploadGameAsync(
+        new WebDavSettings("https://dav.example/", "user", "password", "Firefly"),
+        game, [], "machine-one", null, null).GetAwaiter().GetResult();
+
+    AssertTrue(result.Success, result.Message);
+    AssertTrue(!handler.Requests.Any(request => request.Method == HttpMethod.Put &&
+        request.RequestUri!.AbsolutePath.Contains("/cover/", StringComparison.Ordinal)),
+        "A stale device must not overwrite the newer cloud cover bytes.");
+}
+
+static void WebDavV2CoverDownloadSanitizesReservedFilename()
+{
+    using var workspace = TempDirectory.Create();
+    var handler = new RecordingDownloadHttpMessageHandler();
+    handler.RespondWithText(
+        "GET",
+        "https://dav.jianguoyun.com/dav/FireflyGameManager/v2/games/reserved-cover/cover/CON",
+        "cover");
+    var path = new WebDavGameSyncService(() => new HttpClient(handler)).DownloadCoverAsync(
+        CreateWebDavSettings(),
+        new GameCloudMetadata { Id = "reserved-cover", Name = "Reserved", CoverFileName = "CON", UpdatedAtUtc = DateTime.UtcNow },
+        System.IO.Path.Combine(workspace.Path, "Covers")).GetAwaiter().GetResult();
+
+    AssertEqual("_CON", System.IO.Path.GetFileName(path!));
+}
+
+static void SqliteMachinePathImportsDeviceSettingsForUnconfiguredGame()
+{
+    using var database = TempDatabase.Create();
+    var library = new SqliteGameLibraryService(database.Path);
+    library.MergeCloudMetadata(
+    [
+        new GameCloudMetadata { Id = "device-settings", Name = "Device Settings", UpdatedAtUtc = DateTime.UtcNow }
+    ]);
+
+    library.ApplyMachinePath("device-settings", new MachineGamePath
+    {
+        MachineId = "machine-one",
+        ExecutablePath = @"D:\Games\Device\game.exe",
+        RunAsAdministrator = true,
+        SyncEnabled = false
+    });
+
+    var game = library.GetGames().Single();
+    AssertTrue(game.RunAsAdministrator, "An unconfigured same-machine game should import administrator launch.");
+    AssertTrue(!game.SyncEnabled, "An unconfigured same-machine game should import the local save-sync toggle.");
+}
+
+static void SaveSyncTreatsFirstCloudOnlySaveAsCloudNewer()
+{
+    using var workspace = TempDirectory.Create();
+    var game = CreateGame("cloud-only", "Cloud Only", System.IO.Path.Combine(workspace.Path, "Missing"));
+    var stateStore = new InMemorySaveSyncStateStore();
+    var cloud = new ConfigurableWebDavGameSyncService
+    {
+        RemoteManifest = new SaveManifest("cloud-hash", DateTime.UtcNow, [])
+    };
+    var coordinator = new SaveSyncCoordinator(
+        new RecordingWebDavSettingsStore(),
+        new RecordingAppSettingsStore(new AppSettings { AutoSyncBeforeGameLaunch = true }),
+        cloud,
+        new SaveManifestService(),
+        new RecordingSaveBackupService(System.IO.Path.Combine(workspace.Path, "backup.zip")),
+        stateStore,
+        new InMemorySyncLogService(),
+        "machine-one");
+
+    var result = coordinator.CheckBeforeLaunchAsync(game).GetAwaiter().GetResult();
+
+    AssertTrue(result.RequiresCloudDownloadConfirmation, "A first-sync cloud-only save should be offered as cloud newer.");
+    AssertEqual("cloud-newer", stateStore.Get(game.Id)!.Status);
+}
+
+static void SaveSyncKeepBothVerifiesDownloadedArchive()
+{
+    using var workspace = TempDirectory.Create();
+    var saveDirectory = System.IO.Path.Combine(workspace.Path, "Saves");
+    Directory.CreateDirectory(saveDirectory);
+    File.WriteAllText(System.IO.Path.Combine(saveDirectory, "slot.sav"), "local");
+    var game = CreateGame("keep-both-verify", "Keep Both Verify", saveDirectory);
+    var backupService = new LocalSaveBackupService(System.IO.Path.Combine(workspace.Path, "Backups"));
+    var cloud = new ConfigurableWebDavGameSyncService
+    {
+        RemoteManifest = new SaveManifest("expected-cloud-hash", DateTime.UtcNow, []),
+        DownloadLatestContent = "wrong-cloud-content"
+    };
+    var coordinator = new SaveSyncCoordinator(
+        new RecordingWebDavSettingsStore(),
+        new RecordingAppSettingsStore(new AppSettings()),
+        cloud,
+        new SaveManifestService(),
+        backupService,
+        new InMemorySaveSyncStateStore(),
+        new InMemorySyncLogService(),
+        "machine-one");
+
+    var result = coordinator.ResolveConflictAsync(game, SaveConflictResolution.KeepBoth).GetAwaiter().GetResult();
+
+    AssertTrue(!result.Success, "Keep both must reject a downloaded archive that does not match the remote manifest.");
+    AssertEqual(0, backupService.GetBackups(game).Count);
+}
+
+static void SaveSyncKeepBothDeletesInvalidDownloadedArchive()
+{
+    using var workspace = TempDirectory.Create();
+    var saveDirectory = System.IO.Path.Combine(workspace.Path, "Saves");
+    Directory.CreateDirectory(saveDirectory);
+    File.WriteAllText(System.IO.Path.Combine(saveDirectory, "slot.sav"), "local");
+    var game = CreateGame("keep-both-invalid", "Keep Both Invalid", saveDirectory);
+    var backupService = new LocalSaveBackupService(System.IO.Path.Combine(workspace.Path, "Backups"));
+    var cloud = new ConfigurableWebDavGameSyncService
+    {
+        RemoteManifest = new SaveManifest("expected-cloud-hash", DateTime.UtcNow, []),
+        DownloadLatestRawContent = "not-a-zip"
+    };
+    var coordinator = new SaveSyncCoordinator(
+        new RecordingWebDavSettingsStore(),
+        new RecordingAppSettingsStore(new AppSettings()),
+        cloud,
+        new SaveManifestService(),
+        backupService,
+        new InMemorySaveSyncStateStore(),
+        new InMemorySyncLogService(),
+        "machine-one");
+
+    var result = coordinator.ResolveConflictAsync(game, SaveConflictResolution.KeepBoth).GetAwaiter().GetResult();
+
+    AssertTrue(!result.Success, "An invalid cloud archive should remain retry pending.");
+    AssertEqual(0, backupService.GetBackups(game).Count);
+}
+
+static void WebDavFullSyncStopsAfterFailedRemoteDownload()
+{
+    using var workspace = TempDirectory.Create();
+    var databasePath = System.IO.Path.Combine(workspace.Path, "app.db");
+    _ = new SqliteGameLibraryService(databasePath);
+    var manual = new FailingDownloadManualSyncService();
+    var result = new WebDavFullSyncService(manual).SynchronizeAsync(
+        CreateWebDavSettings(), databasePath, System.IO.Path.Combine(workspace.Path, "Backups")).GetAwaiter().GetResult();
+
+    AssertTrue(!result.Success, "Full sync must stop when a real remote download fails.");
+    AssertEqual(0, manual.UploadCalls);
+}
+
+static void WebDavFullSyncUploadsMetadataForDisabledSaveSyncGame()
+{
+    using var workspace = TempDirectory.Create();
+    var localDatabasePath = System.IO.Path.Combine(workspace.Path, "app.db");
+    var local = new SqliteGameLibraryService(localDatabasePath);
+    var added = local.AddGame(new AddGameRequest("Metadata Only", "game.exe", "game", "save", null, syncEnabled: false));
+    var remoteDatabasePath = System.IO.Path.Combine(workspace.Path, "remote.db");
+    _ = new SqliteGameLibraryService(remoteDatabasePath);
+    var remoteBackups = System.IO.Path.Combine(workspace.Path, "RemoteBackups");
+    Directory.CreateDirectory(remoteBackups);
+    var localBackups = System.IO.Path.Combine(workspace.Path, "Backups", $"Metadata Only-{added.Id}");
+    Directory.CreateDirectory(localBackups);
+    File.WriteAllText(System.IO.Path.Combine(localBackups, "disabled.zip"), "disabled");
+    var manual = new RecordingFullSyncManualSyncService(remoteDatabasePath, remoteBackups);
+    var gameSync = new ConfigurableWebDavGameSyncService();
+    var service = new WebDavFullSyncService(
+        manual,
+        new SqliteGameLibraryMergeService(),
+        new SaveBackupMergeService(),
+        () => System.IO.Path.Combine(workspace.Path, "temp"),
+        gameSync,
+        new SaveManifestService(),
+        "machine-one");
+
+    var result = service.SynchronizeAsync(
+        CreateWebDavSettings(), localDatabasePath, System.IO.Path.Combine(workspace.Path, "Backups")).GetAwaiter().GetResult();
+
+    AssertTrue(result.Success, result.Message);
+    var upload = gameSync.Uploads.Single(item => item.GameId == added.Id);
+    AssertEqual<string?>(null, upload.LatestBackupPath);
+    AssertEqual(0, manual.UploadedBackupFileNames.Count);
+}
+
 static void AssertTrue(bool condition, string message)
 {
     if (!condition)
@@ -2051,6 +3498,44 @@ static void CreateZipWithFile(string zipPath, string entryName, string content)
     writer.Write(content);
 }
 
+static void CreateLegacyDatabase(string databasePath, long totalPlaySeconds)
+{
+    using var connection = new SqliteConnection(new SqliteConnectionStringBuilder
+    {
+        DataSource = databasePath,
+        Pooling = false
+    }.ToString());
+    connection.Open();
+    using var command = connection.CreateCommand();
+    command.CommandText =
+        """
+        CREATE TABLE games (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            executable_path TEXT NOT NULL,
+            game_root_path TEXT NOT NULL,
+            save_path TEXT NOT NULL,
+            cover_image_path TEXT,
+            total_play_seconds INTEGER NOT NULL DEFAULT 0,
+            last_launch_time TEXT,
+            sort_order INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
+        INSERT INTO games (
+            id, name, executable_path, game_root_path, save_path, cover_image_path,
+            total_play_seconds, last_launch_time, sort_order, created_at, updated_at
+        )
+        VALUES (
+            'legacy-game', 'Legacy Game', 'D:\Games\Legacy\game.exe', 'D:\Games\Legacy',
+            'D:\Saves\Legacy', NULL, $total, '2026-06-01T20:00:00+08:00', 0,
+            '2026-05-01T00:00:00+08:00', '2026-06-01T20:00:00+08:00'
+        );
+        """;
+    command.Parameters.AddWithValue("$total", totalPlaySeconds);
+    command.ExecuteNonQuery();
+}
+
 static void WriteSolidPng(string path, System.Windows.Media.Color color)
 {
     var bitmap = new System.Windows.Media.Imaging.WriteableBitmap(
@@ -2190,6 +3675,20 @@ sealed class RecordingGameSessionPresentationService : IGameSessionPresentationS
     }
 }
 
+sealed class TestSecretProtector : ISecretProtector
+{
+    public string Protect(string plaintext)
+    {
+        return Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"protected:{plaintext}"));
+    }
+
+    public string Unprotect(string protectedValue)
+    {
+        var decoded = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(protectedValue));
+        return decoded["protected:".Length..];
+    }
+}
+
 sealed class TempDirectory : IDisposable
 {
     private TempDirectory(string path)
@@ -2234,6 +3733,7 @@ sealed class TempDatabase : IDisposable
 
     public void Dispose()
     {
+        SqliteConnection.ClearAllPools();
         if (File.Exists(Path))
         {
             File.Delete(Path);
@@ -2319,6 +3819,11 @@ sealed class RecordingSaveBackupService : ISaveBackupService
     {
         RestoreGameId = game.Id;
         RestoreBackupPath = backupPath;
+        backups.Insert(0, new SaveBackupEntry(
+            System.IO.Path.Combine(GetBackupDirectory(game), "before-restore.zip"),
+            "before-restore.zip",
+            DateTime.Now,
+            100));
         return Task.CompletedTask;
     }
 
@@ -2441,6 +3946,263 @@ sealed class RecordingWebDavFullSyncService : IWebDavFullSyncService
     }
 }
 
+sealed class ThrowingWebDavFullSyncService : IWebDavFullSyncService
+{
+    private readonly string message;
+
+    public ThrowingWebDavFullSyncService(string message)
+    {
+        this.message = message;
+    }
+
+    public Task<WebDavFullSyncResult> SynchronizeAsync(WebDavSettings settings, string databasePath, string saveBackupsDirectory)
+    {
+        return Task.FromException<WebDavFullSyncResult>(new InvalidOperationException(message));
+    }
+}
+
+sealed class RecordingWebDavGameSyncService : IWebDavGameSyncService
+{
+    private readonly GameCloudMetadata metadata;
+    private readonly MachineGamePath machinePath;
+
+    public RecordingWebDavGameSyncService(GameCloudMetadata metadata, MachineGamePath machinePath)
+    {
+        this.metadata = metadata;
+        this.machinePath = machinePath;
+    }
+
+    public Task<WebDavGameSyncResult> UploadGamesIndexAsync(WebDavSettings settings, IReadOnlyList<Game> games)
+    {
+        return Task.FromResult(new WebDavGameSyncResult(true, "index uploaded"));
+    }
+
+    public Task<WebDavGameSyncResult> UploadGameAsync(
+        WebDavSettings settings,
+        Game game,
+        IReadOnlyList<PlaySession> sessions,
+        string machineId,
+        SaveManifest? saveManifest,
+        string? latestBackupPath)
+    {
+        return Task.FromResult(new WebDavGameSyncResult(true, "game uploaded"));
+    }
+
+    public Task<IReadOnlyList<GameCloudMetadata>> DownloadGameMetadataAsync(WebDavSettings settings)
+    {
+        return Task.FromResult<IReadOnlyList<GameCloudMetadata>>([metadata]);
+    }
+
+    public Task<IReadOnlyList<PlaySession>> DownloadPlaySessionsAsync(WebDavSettings settings, GameCloudMetadata metadata)
+    {
+        return Task.FromResult<IReadOnlyList<PlaySession>>([]);
+    }
+
+    public Task<MachineGamePath?> DownloadMachinePathAsync(WebDavSettings settings, string gameId, string machineId)
+    {
+        return Task.FromResult<MachineGamePath?>(machinePath);
+    }
+
+    public Task<string?> DownloadCoverAsync(WebDavSettings settings, GameCloudMetadata metadata, string coverDirectory)
+    {
+        return Task.FromResult<string?>(null);
+    }
+
+    public Task<SaveManifest?> DownloadSaveManifestAsync(WebDavSettings settings, string gameId)
+    {
+        return Task.FromResult<SaveManifest?>(null);
+    }
+
+    public Task<bool> DownloadLatestSaveAsync(WebDavSettings settings, string gameId, string destinationPath)
+    {
+        return Task.FromResult(false);
+    }
+}
+
+sealed class ConfigurableWebDavGameSyncService : IWebDavGameSyncService
+{
+    public SaveManifest? RemoteManifest { get; set; }
+    public WebDavGameSyncResult UploadResult { get; set; } = new(true, "uploaded");
+    public string? DownloadLatestContent { get; set; }
+    public string? DownloadLatestRawContent { get; set; }
+    public int DownloadLatestCalls { get; private set; }
+    public string? LastDownloadDestination { get; private set; }
+    public List<(string GameId, string? LatestBackupPath)> Uploads { get; } = [];
+
+    public Task<WebDavGameSyncResult> UploadGamesIndexAsync(WebDavSettings settings, IReadOnlyList<Game> games) =>
+        Task.FromResult(new WebDavGameSyncResult(true, "index uploaded"));
+
+    public Task<WebDavGameSyncResult> UploadGameAsync(
+        WebDavSettings settings,
+        Game game,
+        IReadOnlyList<PlaySession> sessions,
+        string machineId,
+        SaveManifest? saveManifest,
+        string? latestBackupPath)
+    {
+        Uploads.Add((game.Id, latestBackupPath));
+        return Task.FromResult(UploadResult);
+    }
+
+    public Task<IReadOnlyList<GameCloudMetadata>> DownloadGameMetadataAsync(WebDavSettings settings) =>
+        Task.FromResult<IReadOnlyList<GameCloudMetadata>>([]);
+
+    public Task<IReadOnlyList<PlaySession>> DownloadPlaySessionsAsync(WebDavSettings settings, GameCloudMetadata metadata) =>
+        Task.FromResult<IReadOnlyList<PlaySession>>([]);
+
+    public Task<MachineGamePath?> DownloadMachinePathAsync(WebDavSettings settings, string gameId, string machineId) =>
+        Task.FromResult<MachineGamePath?>(null);
+
+    public Task<string?> DownloadCoverAsync(WebDavSettings settings, GameCloudMetadata metadata, string coverDirectory) =>
+        Task.FromResult<string?>(null);
+
+    public Task<SaveManifest?> DownloadSaveManifestAsync(WebDavSettings settings, string gameId) =>
+        Task.FromResult(RemoteManifest);
+
+    public Task<bool> DownloadLatestSaveAsync(WebDavSettings settings, string gameId, string destinationPath)
+    {
+        DownloadLatestCalls++;
+        LastDownloadDestination = destinationPath;
+        if (DownloadLatestContent is null && DownloadLatestRawContent is null)
+        {
+            return Task.FromResult(false);
+        }
+
+        Directory.CreateDirectory(System.IO.Path.GetDirectoryName(destinationPath)!);
+        if (DownloadLatestRawContent is not null)
+        {
+            File.WriteAllText(destinationPath, DownloadLatestRawContent);
+            return Task.FromResult(true);
+        }
+
+        using var zip = ZipFile.Open(destinationPath, ZipArchiveMode.Create);
+        var entry = zip.CreateEntry("slot.sav");
+        using var writer = new StreamWriter(entry.Open());
+        writer.Write(DownloadLatestContent);
+        return Task.FromResult(true);
+    }
+}
+
+sealed class StartupPullGameSyncService : IWebDavGameSyncService
+{
+    private readonly IReadOnlyList<GameCloudMetadata> metadata;
+
+    public StartupPullGameSyncService(IReadOnlyList<GameCloudMetadata> metadata)
+    {
+        this.metadata = metadata;
+    }
+
+    public HashSet<string> FailingMachinePathGameIds { get; } = new(StringComparer.OrdinalIgnoreCase);
+    public Dictionary<string, MachineGamePath> MachinePaths { get; } = new(StringComparer.OrdinalIgnoreCase);
+    public Dictionary<string, string> CoverPaths { get; } = new(StringComparer.OrdinalIgnoreCase);
+    public int CoverDownloadCalls { get; private set; }
+
+    public Task<WebDavGameSyncResult> UploadGamesIndexAsync(WebDavSettings settings, IReadOnlyList<Game> games) =>
+        Task.FromResult(new WebDavGameSyncResult(true, "uploaded"));
+
+    public Task<WebDavGameSyncResult> UploadGameAsync(
+        WebDavSettings settings,
+        Game game,
+        IReadOnlyList<PlaySession> sessions,
+        string machineId,
+        SaveManifest? saveManifest,
+        string? latestBackupPath) =>
+        Task.FromResult(new WebDavGameSyncResult(true, "uploaded"));
+
+    public Task<IReadOnlyList<GameCloudMetadata>> DownloadGameMetadataAsync(WebDavSettings settings) =>
+        Task.FromResult(metadata);
+
+    public Task<IReadOnlyList<PlaySession>> DownloadPlaySessionsAsync(WebDavSettings settings, GameCloudMetadata metadata) =>
+        Task.FromResult<IReadOnlyList<PlaySession>>([]);
+
+    public Task<MachineGamePath?> DownloadMachinePathAsync(WebDavSettings settings, string gameId, string machineId)
+    {
+        if (FailingMachinePathGameIds.Contains(gameId))
+        {
+            return Task.FromException<MachineGamePath?>(new InvalidOperationException("path download failed"));
+        }
+
+        return Task.FromResult(MachinePaths.TryGetValue(gameId, out var path) ? path : null);
+    }
+
+    public Task<string?> DownloadCoverAsync(WebDavSettings settings, GameCloudMetadata metadata, string coverDirectory)
+    {
+        CoverDownloadCalls++;
+        return Task.FromResult(CoverPaths.TryGetValue(metadata.Id, out var path) ? path : null);
+    }
+
+    public Task<SaveManifest?> DownloadSaveManifestAsync(WebDavSettings settings, string gameId) =>
+        Task.FromResult<SaveManifest?>(null);
+
+    public Task<bool> DownloadLatestSaveAsync(WebDavSettings settings, string gameId, string destinationPath) =>
+        Task.FromResult(false);
+}
+
+sealed class FailingDownloadManualSyncService : IWebDavManualSyncService
+{
+    public int UploadCalls { get; private set; }
+
+    public Task<WebDavUploadResult> UploadUserDataAsync(WebDavSettings settings, string databasePath)
+    {
+        UploadCalls++;
+        return Task.FromResult(new WebDavUploadResult(true, "uploaded", 1, 0));
+    }
+
+    public Task<WebDavUploadResult> UploadSaveBackupsAsync(WebDavSettings settings, string saveBackupsDirectory)
+    {
+        UploadCalls++;
+        return Task.FromResult(new WebDavUploadResult(true, "uploaded", 1, 0));
+    }
+
+    public Task<WebDavDownloadResult> DownloadUserDataAsync(WebDavSettings settings, string databasePath) =>
+        Task.FromResult(new WebDavDownloadResult(false, "network failed", 0, 1));
+
+    public Task<WebDavDownloadResult> DownloadSaveBackupsAsync(WebDavSettings settings, string saveBackupsDirectory) =>
+        Task.FromResult(new WebDavDownloadResult(false, "network failed", 0, 1));
+}
+
+sealed class InMemorySaveSyncStateStore : ISaveSyncStateStore
+{
+    private readonly Dictionary<string, SaveSyncState> states = new(StringComparer.OrdinalIgnoreCase);
+
+    public SaveSyncState? Get(string gameId)
+    {
+        return states.TryGetValue(gameId, out var state) ? state : null;
+    }
+
+    public void Save(SaveSyncState state)
+    {
+        states[state.GameId] = state;
+    }
+}
+
+sealed class RecordingSaveSyncCoordinator : ISaveSyncCoordinator
+{
+    private readonly SaveSyncOperationResult result;
+
+    public RecordingSaveSyncCoordinator(SaveSyncOperationResult result)
+    {
+        this.result = result;
+    }
+
+    public string? SynchronizedGameId { get; private set; }
+
+    public Task<SaveSyncOperationResult> CheckBeforeLaunchAsync(Game game) => Task.FromResult(result);
+
+    public Task<SaveSyncOperationResult> SyncAfterExitAsync(Game game) => Task.FromResult(result);
+
+    public Task<SaveSyncOperationResult> SynchronizeNowAsync(Game game)
+    {
+        SynchronizedGameId = game.Id;
+        return Task.FromResult(result);
+    }
+
+    public Task<SaveSyncOperationResult> ResolveConflictAsync(Game game, SaveConflictResolution resolution) =>
+        Task.FromResult(result);
+
+    public SaveSyncState? GetState(string gameId) => null;
+}
+
 sealed class RecordingFullSyncManualSyncService : IWebDavManualSyncService
 {
     private readonly string remoteDatabasePath;
@@ -2455,6 +4217,7 @@ sealed class RecordingFullSyncManualSyncService : IWebDavManualSyncService
     public string? UploadedUserDataPath { get; private set; }
 
     public string? UploadedSaveBackupsDirectory { get; private set; }
+    public List<string> UploadedBackupFileNames { get; } = [];
 
     public Task<WebDavUploadResult> UploadUserDataAsync(WebDavSettings settings, string databasePath)
     {
@@ -2465,6 +4228,13 @@ sealed class RecordingFullSyncManualSyncService : IWebDavManualSyncService
     public Task<WebDavUploadResult> UploadSaveBackupsAsync(WebDavSettings settings, string saveBackupsDirectory)
     {
         UploadedSaveBackupsDirectory = saveBackupsDirectory;
+        if (Directory.Exists(saveBackupsDirectory))
+        {
+            UploadedBackupFileNames.AddRange(Directory.EnumerateFiles(saveBackupsDirectory, "*.zip", SearchOption.AllDirectories)
+                .Select(System.IO.Path.GetFileName)
+                .Where(name => name is not null)
+                .Select(name => name!));
+        }
         return Task.FromResult(new WebDavUploadResult(true, "save backups uploaded", 1, 0));
     }
 
@@ -2513,9 +4283,16 @@ sealed class RecordingHttpMessageHandler : HttpMessageHandler
 
 sealed class RecordingUploadHttpMessageHandler : HttpMessageHandler
 {
+    private readonly Dictionary<string, (HttpStatusCode StatusCode, string Content)> responses = [];
+
     public List<HttpRequestMessage> Requests { get; } = [];
 
     public Dictionary<string, string> UploadedText { get; } = [];
+
+    public void RespondWithText(string method, string uri, string content, HttpStatusCode statusCode = HttpStatusCode.OK)
+    {
+        responses[$"{method.ToUpperInvariant()} {uri}"] = (statusCode, content);
+    }
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
@@ -2525,7 +4302,16 @@ sealed class RecordingUploadHttpMessageHandler : HttpMessageHandler
             UploadedText[request.RequestUri!.AbsoluteUri] = await request.Content.ReadAsStringAsync(cancellationToken);
         }
 
-        return new HttpResponseMessage(request.Method.Method == "PUT" ? HttpStatusCode.Created : HttpStatusCode.Created);
+        var key = $"{request.Method.Method.ToUpperInvariant()} {request.RequestUri!.AbsoluteUri}";
+        if (responses.TryGetValue(key, out var configured))
+        {
+            return new HttpResponseMessage(configured.StatusCode)
+            {
+                Content = new StringContent(configured.Content)
+            };
+        }
+
+        return new HttpResponseMessage(request.Method.Method == "GET" ? HttpStatusCode.NotFound : HttpStatusCode.Created);
     }
 }
 

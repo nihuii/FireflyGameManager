@@ -15,4 +15,6 @@ public interface IGameLibraryService
     bool PinGameToTop(string id);
 
     Game RecordLaunchResult(string id, LaunchResult result);
+
+    IReadOnlyList<PlaySession> GetPlaySessions(string gameId);
 }

@@ -12,7 +12,11 @@ public sealed class Game
         TimeSpan totalPlayTime,
         DateTime? lastLaunchTime,
         string launchArguments = "",
-        bool runAsAdministrator = false)
+        bool runAsAdministrator = false,
+        string workingDirectory = "",
+        string monitorProcessName = "",
+        bool syncEnabled = true,
+        DateTime? updatedAtUtc = null)
     {
         Id = id;
         Name = name;
@@ -24,6 +28,10 @@ public sealed class Game
         LastLaunchTime = lastLaunchTime;
         LaunchArguments = launchArguments;
         RunAsAdministrator = runAsAdministrator;
+        WorkingDirectory = workingDirectory;
+        MonitorProcessName = monitorProcessName;
+        SyncEnabled = syncEnabled;
+        UpdatedAtUtc = updatedAtUtc?.ToUniversalTime() ?? DateTime.UtcNow;
     }
 
     public string Id { get; }
@@ -45,6 +53,14 @@ public sealed class Game
     public string LaunchArguments { get; }
 
     public bool RunAsAdministrator { get; }
+
+    public string WorkingDirectory { get; }
+
+    public string MonitorProcessName { get; }
+
+    public bool SyncEnabled { get; }
+
+    public DateTime UpdatedAtUtc { get; }
 
     public string PlayTimeDisplay => $"{(int)TotalPlayTime.TotalHours} 小时 {TotalPlayTime.Minutes} 分钟";
 }

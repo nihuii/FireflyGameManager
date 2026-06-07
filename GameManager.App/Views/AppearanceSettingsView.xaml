@@ -275,6 +275,37 @@
                                           HorizontalAlignment="Right" />
                             </Grid>
                         </Border>
+                        <Border Style="{StaticResource SettingsOptionRowStyle}">
+                            <Grid>
+                                <TextBlock Text="启动游戏前检查云端存档" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center" />
+                                <CheckBox IsChecked="{Binding AutoSyncBeforeGameLaunch}"
+                                          Style="{StaticResource ToggleSwitchStyle}"
+                                          HorizontalAlignment="Right" />
+                            </Grid>
+                        </Border>
+                        <Border Style="{StaticResource SettingsOptionRowStyle}">
+                            <Grid>
+                                <TextBlock Text="游戏退出后自动上传存档" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center" />
+                                <CheckBox IsChecked="{Binding AutoSyncAfterGameExit}"
+                                          Style="{StaticResource ToggleSwitchStyle}"
+                                          HorizontalAlignment="Right" />
+                            </Grid>
+                        </Border>
+                        <Border Style="{StaticResource SettingsOptionRowStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="每个游戏保留的本地备份" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center" />
+                                <ComboBox Grid.Column="1"
+                                          ItemsSource="{Binding BackupRetentionOptions}"
+                                          DisplayMemberPath="Label"
+                                          SelectedValuePath="Value"
+                                          SelectedValue="{Binding BackupRetentionCount}"
+                                          Style="{StaticResource ModernComboBoxStyle}" />
+                            </Grid>
+                        </Border>
                     </StackPanel>
                 </Border>
             </StackPanel>

@@ -123,6 +123,26 @@
                             Style="{StaticResource SecondaryButtonStyle}"
                             Width="112"
                             Margin="0,0,10,10" />
+                    <Button Content="同步存档"
+                            Command="{Binding SyncSaveCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Width="112"
+                            Margin="0,0,10,10" />
+                    <Button Content="修改信息"
+                            Command="{Binding EditGameCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Width="104"
+                            Margin="0,0,10,10" />
+                    <Button Content="打开游戏目录"
+                            Command="{Binding OpenGameDirectoryCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Width="120"
+                            Margin="0,0,10,10" />
+                    <Button Content="打开存档目录"
+                            Command="{Binding OpenSaveDirectoryCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Width="120"
+                            Margin="0,0,10,10" />
                 </WrapPanel>
 
                 <Grid Margin="0,0,0,18">
@@ -152,6 +172,51 @@
                         </StackPanel>
                     </Border>
                 </Grid>
+
+                <Border Style="{StaticResource StatusPillStyle}"
+                        Margin="0,0,0,18">
+                    <Grid>
+                        <StackPanel>
+                            <TextBlock Text="云存档状态"
+                                       Style="{StaticResource DetailInfoLabelStyle}" />
+                            <TextBlock Text="{Binding SyncStatusText}"
+                                       Style="{StaticResource DetailInfoValueStyle}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource SectionCardStyle}"
+                        Visibility="{Binding HasSyncDecision, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <StackPanel>
+                        <TextBlock Text="{Binding SyncDecisionTitle}"
+                                   Style="{StaticResource SectionTitleStyle}" />
+                        <TextBlock Text="{Binding SyncDecisionDescription}"
+                                   Style="{StaticResource MutedTextStyle}"
+                                   Margin="0,-6,0,14" />
+                        <WrapPanel>
+                            <Button Content="{Binding UseLocalActionText}"
+                                    Command="{Binding ResolveUseLocalCommand}"
+                                    Style="{StaticResource PrimaryButtonStyle}"
+                                    Width="132"
+                                    Margin="0,0,10,10" />
+                            <Button Content="{Binding UseCloudActionText}"
+                                    Command="{Binding ResolveUseCloudCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Width="104"
+                                    Margin="0,0,10,10" />
+                            <Button Content="保留两份"
+                                    Command="{Binding ResolveKeepBothCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Width="104"
+                                    Margin="0,0,10,10" />
+                            <Button Content="稍后处理"
+                                    Command="{Binding CancelConflictCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Width="104"
+                                    Margin="0,0,10,10" />
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
 
                 <Border Style="{StaticResource SectionCardStyle}">
                     <StackPanel>

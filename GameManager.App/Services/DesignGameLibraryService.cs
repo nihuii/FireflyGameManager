@@ -35,4 +35,9 @@ public sealed class DesignGameLibraryService : IGameLibraryService
     {
         return inner.RecordLaunchResult(id, result);
     }
+
+    public IReadOnlyList<PlaySession> GetPlaySessions(string gameId)
+    {
+        return inner.GetPlaySessions(gameId);
+    }
 }

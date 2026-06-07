@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("GameManager.App.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c81b3ac06359aed229da07b10dacb7597301db69")]
 [assembly: System.Reflection.AssemblyProductAttribute("GameManager.App.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("GameManager.App.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

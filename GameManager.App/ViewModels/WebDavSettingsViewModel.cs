@@ -1,4 +1,6 @@
 using System.Windows.Input;
+using System.Collections.ObjectModel;
+using System.IO;
 using GameManager.App.Commands;
 using GameManager.App.Models;
 using GameManager.App.Services;
@@ -13,6 +15,8 @@ public sealed class WebDavSettingsViewModel : ViewModelBase
     private readonly IWebDavFullSyncService fullSyncService;
     private readonly string databasePath;
     private readonly string saveBackupsDirectory;
+    private readonly ISyncLogService syncLogService;
+    private readonly Action syncCompleted;
     private string serverUrl;
     private string username;
     private string applicationPassword;
@@ -26,13 +30,25 @@ public sealed class WebDavSettingsViewModel : ViewModelBase
         IWebDavSettingsStore settingsStore,
         IWebDavConnectionTester connectionTester,
         Action goBack)
+        : this(settingsStore, connectionTester, goBack, () => { })
+    {
+    }
+
+    public WebDavSettingsViewModel(
+        IWebDavSettingsStore settingsStore,
+        IWebDavConnectionTester connectionTester,
+        Action goBack,
+        Action syncCompleted,
+        ISyncLogService? syncLogService = null)
         : this(
             settingsStore,
             connectionTester,
             new WebDavManualSyncService(),
             goBack,
             AppPaths.DatabasePath,
-            AppPaths.SaveBackupsDirectory)
+            AppPaths.SaveBackupsDirectory,
+            syncCompleted,
+            syncLogService)
     {
     }
 
@@ -42,15 +58,19 @@ public sealed class WebDavSettingsViewModel : ViewModelBase
         IWebDavManualSyncService manualSyncService,
         Action goBack,
         string databasePath,
-        string saveBackupsDirectory)
+        string saveBackupsDirectory,
+        Action? syncCompleted = null,
+        ISyncLogService? syncLogService = null)
         : this(
             settingsStore,
             connectionTester,
             manualSyncService,
-            new WebDavFullSyncService(manualSyncService),
+            CreateFullSyncService(manualSyncService),
             goBack,
             databasePath,
-            saveBackupsDirectory)
+            saveBackupsDirectory,
+            syncLogService,
+            syncCompleted)
     {
     }
 
@@ -61,7 +81,9 @@ public sealed class WebDavSettingsViewModel : ViewModelBase
         IWebDavFullSyncService fullSyncService,
         Action goBack,
         string databasePath,
-        string saveBackupsDirectory)
+        string saveBackupsDirectory,
+        ISyncLogService? syncLogService = null,
+        Action? syncCompleted = null)
     {
         this.settingsStore = settingsStore;
         this.connectionTester = connectionTester;
@@ -69,6 +91,8 @@ public sealed class WebDavSettingsViewModel : ViewModelBase
         this.fullSyncService = fullSyncService;
         this.databasePath = databasePath;
         this.saveBackupsDirectory = saveBackupsDirectory;
+        this.syncLogService = syncLogService ?? new InMemorySyncLogService();
+        this.syncCompleted = syncCompleted ?? (() => { });
         var settings = settingsStore.Load();
         serverUrl = settings.ServerUrl;
         username = settings.Username;
@@ -82,6 +106,7 @@ public sealed class WebDavSettingsViewModel : ViewModelBase
         DownloadSaveBackupsCommand = new AsyncRelayCommand(_ => DownloadSaveBackupsAsync());
         FullSyncCommand = new AsyncRelayCommand(_ => FullSyncAsync());
         BackCommand = new RelayCommand(_ => goBack());
+        RefreshSyncRecords();
     }
 
     public string ServerUrl
@@ -148,6 +173,10 @@ public sealed class WebDavSettingsViewModel : ViewModelBase
 
     public ICommand BackCommand { get; }
 
+    public ObservableCollection<SyncRecord> RecentSyncRecords { get; } = [];
+
+    public bool HasSyncRecords => RecentSyncRecords.Count > 0;
+
     private void SaveSettings()
     {
         settingsStore.Save(CreateSettings());
@@ -166,40 +195,93 @@ public sealed class WebDavSettingsViewModel : ViewModelBase
     {
         var settings = SaveCurrentSettings();
         UploadStatusText = "正在上传用户信息...";
-        var result = await manualSyncService.UploadUserDataAsync(settings, databasePath);
-        UploadStatusText = result.Message;
+        try
+        {
+            var result = await manualSyncService.UploadUserDataAsync(settings, databasePath);
+            UploadStatusText = result.Message;
+            RecordSync("metadata", "upload", result.Success, result.Message);
+        }
+        catch (Exception ex)
+        {
+            UploadStatusText = $"上传用户信息失败：{ex.Message}";
+            RecordSync("metadata", "upload", false, UploadStatusText);
+        }
     }
 
     private async Task UploadSaveBackupsAsync()
     {
         var settings = SaveCurrentSettings();
         UploadStatusText = "正在上传存档备份...";
-        var result = await manualSyncService.UploadSaveBackupsAsync(settings, saveBackupsDirectory);
-        UploadStatusText = result.Message;
+        try
+        {
+            var result = await manualSyncService.UploadSaveBackupsAsync(settings, saveBackupsDirectory);
+            UploadStatusText = result.Message;
+            RecordSync("save", "upload", result.Success, result.Message);
+        }
+        catch (Exception ex)
+        {
+            UploadStatusText = $"上传存档备份失败：{ex.Message}";
+            RecordSync("save", "upload", false, UploadStatusText);
+        }
     }
 
     private async Task DownloadUserDataAsync()
     {
         var settings = SaveCurrentSettings();
         DownloadStatusText = "正在下载用户信息...";
-        var result = await manualSyncService.DownloadUserDataAsync(settings, databasePath);
-        DownloadStatusText = result.Message;
+        try
+        {
+            var result = await manualSyncService.DownloadUserDataAsync(settings, databasePath);
+            DownloadStatusText = result.Message;
+            RecordSync("metadata", "download", result.Success, result.Message);
+            if (result.Success)
+            {
+                syncCompleted();
+            }
+        }
+        catch (Exception ex)
+        {
+            DownloadStatusText = $"下载用户信息失败：{ex.Message}";
+            RecordSync("metadata", "download", false, DownloadStatusText);
+        }
     }
 
     private async Task DownloadSaveBackupsAsync()
     {
         var settings = SaveCurrentSettings();
         DownloadStatusText = "正在下载存档备份...";
-        var result = await manualSyncService.DownloadSaveBackupsAsync(settings, saveBackupsDirectory);
-        DownloadStatusText = result.Message;
+        try
+        {
+            var result = await manualSyncService.DownloadSaveBackupsAsync(settings, saveBackupsDirectory);
+            DownloadStatusText = result.Message;
+            RecordSync("save", "download", result.Success, result.Message);
+        }
+        catch (Exception ex)
+        {
+            DownloadStatusText = $"下载存档备份失败：{ex.Message}";
+            RecordSync("save", "download", false, DownloadStatusText);
+        }
     }
 
     private async Task FullSyncAsync()
     {
         var settings = SaveCurrentSettings();
         SyncStatusText = "正在同步...";
-        var result = await fullSyncService.SynchronizeAsync(settings, databasePath, saveBackupsDirectory);
-        SyncStatusText = result.Message;
+        try
+        {
+            var result = await fullSyncService.SynchronizeAsync(settings, databasePath, saveBackupsDirectory);
+            SyncStatusText = result.Message;
+            RecordSync("full", "both", result.Success, result.Message);
+            if (result.Success)
+            {
+                syncCompleted();
+            }
+        }
+        catch (Exception ex)
+        {
+            SyncStatusText = $"同步失败：{ex.Message}";
+            RecordSync("full", "both", false, SyncStatusText);
+        }
     }
 
     private WebDavSettings SaveCurrentSettings()
@@ -216,5 +298,34 @@ public sealed class WebDavSettingsViewModel : ViewModelBase
             Username.Trim(),
             ApplicationPassword,
             RemoteDirectory.Trim());
+    }
+
+    private static IWebDavFullSyncService CreateFullSyncService(IWebDavManualSyncService manualSyncService)
+    {
+        return new WebDavFullSyncService(
+            manualSyncService,
+            new SqliteGameLibraryMergeService(),
+            new SaveBackupMergeService(),
+            () => Path.Combine(Path.GetTempPath(), "FireflyGameManagerSync"),
+            new WebDavGameSyncService(),
+            new SaveManifestService(),
+            new MachineIdentityService(AppPaths.MachineIdPath).GetOrCreate());
+    }
+
+    private void RecordSync(string type, string direction, bool success, string message)
+    {
+        syncLogService.Add(null, type, direction, success ? "success" : "failed", message);
+        RefreshSyncRecords();
+    }
+
+    private void RefreshSyncRecords()
+    {
+        RecentSyncRecords.Clear();
+        foreach (var record in syncLogService.GetRecent(20))
+        {
+            RecentSyncRecords.Add(record);
+        }
+
+        OnPropertyChanged(nameof(HasSyncRecords));
     }
 }

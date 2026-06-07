@@ -11,19 +11,47 @@ public partial class MainWindow : Window
 {
     private static readonly string AppIconPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "desktop_icon.ico");
     private readonly IAppSettingsStore appSettingsStore;
+    private readonly IWebDavSettingsStore webDavSettingsStore;
+    private readonly IWebDavCloudMetadataPullService cloudMetadataPullService;
+    private readonly MainWindowViewModel viewModel;
     private readonly SystemTrayService systemTrayService;
     private bool isExiting;
+    private bool startupMetadataPullCompleted;
 
     public MainWindow()
     {
         InitializeComponent();
         appSettingsStore = new JsonAppSettingsStore(AppPaths.AppSettingsPath);
-        DataContext = new MainWindowViewModel(
-            new SqliteGameLibraryService(AppPaths.DatabasePath),
+        var machineId = new MachineIdentityService(AppPaths.MachineIdPath).GetOrCreate();
+        var gameLibraryService = new SqliteGameLibraryService(AppPaths.DatabasePath, machineId);
+        var syncLogService = new SqliteSyncLogService(AppPaths.DatabasePath);
+        var gameSyncService = new WebDavGameSyncService();
+        var saveBackupService = new LocalSaveBackupService(
+            AppPaths.SaveBackupsDirectory,
+            () => appSettingsStore.Load().BackupRetentionCount);
+        webDavSettingsStore = new JsonWebDavSettingsStore(AppPaths.WebDavSettingsPath);
+        cloudMetadataPullService = new WebDavCloudMetadataPullService(
+            gameLibraryService,
+            gameSyncService,
+            syncLogService,
+            machineId,
+            AppPaths.CoverCacheDirectory);
+        var saveSyncCoordinator = new SaveSyncCoordinator(
+            webDavSettingsStore,
+            appSettingsStore,
+            gameSyncService,
+            new SaveManifestService(),
+            saveBackupService,
+            new SqliteSaveSyncStateStore(AppPaths.DatabasePath),
+            syncLogService,
+            machineId,
+            gameLibraryService.GetPlaySessions);
+        viewModel = new MainWindowViewModel(
+            gameLibraryService,
             new WpfFilePickerService(),
             new ProcessGameLauncher(),
-            new LocalSaveBackupService(AppPaths.SaveBackupsDirectory),
-            new JsonWebDavSettingsStore(AppPaths.WebDavSettingsPath),
+            saveBackupService,
+            webDavSettingsStore,
             new WebDavConnectionTestService(),
             new JsonAppearanceSettingsStore(AppPaths.AppearanceSettingsPath),
             new WpfAppearanceThemeService(),
@@ -31,7 +59,11 @@ public partial class MainWindow : Window
             new LocalGameDiscoveryService(),
             new LocalDataMaintenanceService(AppPaths.DataDirectory),
             new RegistryAutoStartService("FireflyGameManager", Environment.ProcessPath ?? string.Empty),
-            new WpfGameSessionPresentationService());
+            new WpfGameSessionPresentationService(),
+            saveSyncCoordinator,
+            new LocalCoverCacheService(AppPaths.CoverCacheDirectory),
+            syncLogService);
+        DataContext = viewModel;
         systemTrayService = new SystemTrayService(ShowFromTray, ExitFromTray, AppIconPath);
     }
 
@@ -70,7 +102,7 @@ public partial class MainWindow : Window
         Close();
     }
 
-    private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+    private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
         var settings = appSettingsStore.Load();
         var launchedMinimized = Environment.GetCommandLineArgs()
@@ -78,6 +110,17 @@ public partial class MainWindow : Window
         if (settings.StartMinimized || launchedMinimized)
         {
             Hide();
+        }
+
+        var webDavSettings = webDavSettingsStore.Load();
+        if (!startupMetadataPullCompleted && IsWebDavConfigured(webDavSettings))
+        {
+            startupMetadataPullCompleted = true;
+            var result = await cloudMetadataPullService.PullAsync(webDavSettings);
+            if (result.Success)
+            {
+                viewModel.RefreshLibrary();
+            }
         }
     }
 
@@ -134,5 +177,12 @@ public partial class MainWindow : Window
             systemTrayService.Dispose();
             Application.Current.Shutdown();
         });
+    }
+
+    private static bool IsWebDavConfigured(Models.WebDavSettings settings)
+    {
+        return !string.IsNullOrWhiteSpace(settings.ServerUrl) &&
+            !string.IsNullOrWhiteSpace(settings.Username) &&
+            !string.IsNullOrWhiteSpace(settings.ApplicationPassword);
     }
 }

@@ -7,10 +7,12 @@ namespace GameManager.App.Services;
 public sealed class JsonWebDavSettingsStore : IWebDavSettingsStore
 {
     private readonly string path;
+    private readonly ISecretProtector secretProtector;
 
-    public JsonWebDavSettingsStore(string path)
+    public JsonWebDavSettingsStore(string path, ISecretProtector? secretProtector = null)
     {
         this.path = path;
+        this.secretProtector = secretProtector ?? new DpapiSecretProtector();
     }
 
     public WebDavSettings Load()
@@ -20,18 +22,36 @@ public sealed class JsonWebDavSettingsStore : IWebDavSettingsStore
             return WebDavSettings.Default;
         }
 
-        var json = File.ReadAllText(path);
-        var settings = JsonSerializer.Deserialize<WebDavSettingsDto>(json);
+        WebDavSettingsDto? settings;
+        try
+        {
+            settings = JsonSerializer.Deserialize<WebDavSettingsDto>(File.ReadAllText(path));
+        }
+        catch (JsonException)
+        {
+            return WebDavSettings.Default;
+        }
+
         if (settings is null)
         {
             return WebDavSettings.Default;
         }
 
-        return new WebDavSettings(
+        var password = !string.IsNullOrWhiteSpace(settings.EncryptedApplicationPassword)
+            ? TryUnprotect(settings.EncryptedApplicationPassword)
+            : settings.ApplicationPassword ?? string.Empty;
+        var result = new WebDavSettings(
             settings.ServerUrl ?? WebDavSettings.Default.ServerUrl,
             settings.Username ?? string.Empty,
-            settings.ApplicationPassword ?? string.Empty,
+            password,
             settings.RemoteDirectory ?? WebDavSettings.Default.RemoteDirectory);
+        if (!string.IsNullOrWhiteSpace(settings.ApplicationPassword) &&
+            string.IsNullOrWhiteSpace(settings.EncryptedApplicationPassword))
+        {
+            Save(result);
+        }
+
+        return result;
     }
 
     public void Save(WebDavSettings settings)
@@ -46,7 +66,7 @@ public sealed class JsonWebDavSettingsStore : IWebDavSettingsStore
         {
             ServerUrl = settings.ServerUrl,
             Username = settings.Username,
-            ApplicationPassword = settings.ApplicationPassword,
+            EncryptedApplicationPassword = secretProtector.Protect(settings.ApplicationPassword),
             RemoteDirectory = settings.RemoteDirectory
         }, new JsonSerializerOptions { WriteIndented = true });
 
@@ -61,6 +81,20 @@ public sealed class JsonWebDavSettingsStore : IWebDavSettingsStore
 
         public string? ApplicationPassword { get; set; }
 
+        public string? EncryptedApplicationPassword { get; set; }
+
         public string? RemoteDirectory { get; set; }
+    }
+
+    private string TryUnprotect(string protectedValue)
+    {
+        try
+        {
+            return secretProtector.Unprotect(protectedValue);
+        }
+        catch
+        {
+            return string.Empty;
+        }
     }
 }

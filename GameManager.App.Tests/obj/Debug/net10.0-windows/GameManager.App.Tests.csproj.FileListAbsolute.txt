@@ -151,3 +151,4 @@ D:\Study\Projects\FireflyGameManager\_verify\green5\GameManager.App.Tests.runtim
 D:\Study\Projects\FireflyGameManager\_verify\green5\GameManager.App.Tests.dll
 D:\Study\Projects\FireflyGameManager\_verify\green5\GameManager.App.Tests.pdb
 D:\Study\Projects\FireflyGameManager\GameManager.App.Tests\bin\Debug\net10.0-windows\Assets\desktop_icon.ico
+D:\Study\Projects\FireflyGameManager\GameManager.App.Tests\obj\Debug\net10.0-windows\GameManager.App.Tests.sourcelink.json

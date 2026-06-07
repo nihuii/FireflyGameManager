@@ -133,6 +133,14 @@ public sealed class AppearanceSettingsViewModel : ViewModelBase
         new(GameCardSize.Large, "大")
     ];
 
+    public IReadOnlyList<SettingOption<int>> BackupRetentionOptions { get; } =
+    [
+        new(5, "保留 5 份"),
+        new(10, "保留 10 份"),
+        new(20, "保留 20 份"),
+        new(50, "保留 50 份")
+    ];
+
     public string WallpaperPath
     {
         get => wallpaperPath;
@@ -228,6 +236,24 @@ public sealed class AppearanceSettingsViewModel : ViewModelBase
     {
         get => appSettings.BackupBeforeGameLaunch;
         set => UpdateSetting(() => appSettings.BackupBeforeGameLaunch = value, appSettings.BackupBeforeGameLaunch, value);
+    }
+
+    public bool AutoSyncBeforeGameLaunch
+    {
+        get => appSettings.AutoSyncBeforeGameLaunch;
+        set => UpdateSetting(() => appSettings.AutoSyncBeforeGameLaunch = value, appSettings.AutoSyncBeforeGameLaunch, value);
+    }
+
+    public bool AutoSyncAfterGameExit
+    {
+        get => appSettings.AutoSyncAfterGameExit;
+        set => UpdateSetting(() => appSettings.AutoSyncAfterGameExit = value, appSettings.AutoSyncAfterGameExit, value);
+    }
+
+    public int BackupRetentionCount
+    {
+        get => appSettings.BackupRetentionCount;
+        set => UpdateSetting(() => appSettings.BackupRetentionCount = value, appSettings.BackupRetentionCount, value);
     }
 
     public GameSortMode DefaultSort
@@ -472,6 +498,9 @@ public sealed class AppearanceSettingsViewModel : ViewModelBase
         OnPropertyChanged(nameof(MinimizeAfterGameLaunch));
         OnPropertyChanged(nameof(RestoreAfterGameExit));
         OnPropertyChanged(nameof(BackupBeforeGameLaunch));
+        OnPropertyChanged(nameof(AutoSyncBeforeGameLaunch));
+        OnPropertyChanged(nameof(AutoSyncAfterGameExit));
+        OnPropertyChanged(nameof(BackupRetentionCount));
         OnPropertyChanged(nameof(DefaultSort));
         OnPropertyChanged(nameof(CardSize));
         OnPropertyChanged(nameof(ShowPlayTimeOnCards));

@@ -50,7 +50,17 @@ public sealed class SaveBackupMergeService
 
     private static void CopyBackup(string sourcePath, string destinationPath)
     {
-        File.Copy(sourcePath, destinationPath, true);
+        var temporaryPath = destinationPath + $".tmp-{Guid.NewGuid():N}";
+        try
+        {
+            File.Copy(sourcePath, temporaryPath, true);
+            File.Move(temporaryPath, destinationPath, true);
+        }
+        finally
+        {
+            TryDeleteFile(temporaryPath);
+        }
+
         File.SetLastWriteTimeUtc(destinationPath, File.GetLastWriteTimeUtc(sourcePath));
     }
 
@@ -75,6 +85,22 @@ public sealed class SaveBackupMergeService
         return string.IsNullOrWhiteSpace(segment) ||
             segment == "." ||
             segment == ".." ||
-            segment.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0;
+            segment.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 ||
+            !string.Equals(SafePathSegment.Create(segment), segment, StringComparison.Ordinal);
+    }
+
+    private static void TryDeleteFile(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch
+        {
+            // Temporary cleanup must not hide the merge result.
+        }
     }
 }

@@ -14,19 +14,38 @@ public sealed class SqliteGameLibraryMergeService
             return new GameLibraryMergeResult(0, 0);
         }
 
+        _ = new SqliteGameLibraryService(remoteDatabasePath);
         var localRows = ReadRows(localDatabasePath).ToDictionary(row => row.Id, StringComparer.OrdinalIgnoreCase);
         var remoteRows = ReadRows(remoteDatabasePath);
+        var remotePlaySessions = ReadPlaySessions(remoteDatabasePath);
+        var localDeletedIds = ReadDeletedIds(localDatabasePath);
+        var remoteDeletedGames = ReadDeletedGames(remoteDatabasePath);
+        var deletedIds = new HashSet<string>(localDeletedIds, StringComparer.OrdinalIgnoreCase);
+        deletedIds.UnionWith(remoteDeletedGames.Select(game => game.Id));
         var nextSortOrder = localRows.Count == 0 ? 0 : localRows.Values.Max(row => row.SortOrder) + 1;
         var addedCount = 0;
         var updatedCount = 0;
 
         using var connection = OpenConnection(localDatabasePath);
         using var transaction = connection.BeginTransaction();
+        ApplyRemoteDeletions(connection, transaction, remoteDeletedGames);
         foreach (var remoteRow in remoteRows)
         {
+            if (deletedIds.Contains(remoteRow.Id))
+            {
+                continue;
+            }
+
             if (!localRows.TryGetValue(remoteRow.Id, out var localRow))
             {
-                InsertRow(connection, transaction, remoteRow with { SortOrder = nextSortOrder++ });
+                InsertRow(connection, transaction, remoteRow with
+                {
+                    ExecutablePath = string.Empty,
+                    GameRootPath = string.Empty,
+                    SavePath = string.Empty,
+                    CoverImagePath = null,
+                    SortOrder = nextSortOrder++
+                });
                 addedCount++;
                 continue;
             }
@@ -34,6 +53,10 @@ public sealed class SqliteGameLibraryMergeService
             var selectedInfo = IsRemoteNewer(remoteRow, localRow) ? remoteRow : localRow;
             var mergedRow = selectedInfo with
             {
+                ExecutablePath = localRow.ExecutablePath,
+                GameRootPath = localRow.GameRootPath,
+                SavePath = localRow.SavePath,
+                CoverImagePath = localRow.CoverImagePath,
                 CreatedAt = localRow.CreatedAt,
                 SortOrder = localRow.SortOrder,
                 TotalPlaySeconds = Math.Max(localRow.TotalPlaySeconds, remoteRow.TotalPlaySeconds),
@@ -48,6 +71,7 @@ public sealed class SqliteGameLibraryMergeService
             }
         }
 
+        MergeRemotePlaySessions(connection, transaction, remotePlaySessions, deletedIds);
         transaction.Commit();
         return new GameLibraryMergeResult(addedCount, updatedCount);
     }
@@ -92,6 +116,152 @@ public sealed class SqliteGameLibraryMergeService
         }
 
         return rows;
+    }
+
+    private static HashSet<string> ReadDeletedIds(string databasePath)
+    {
+        using var connection = OpenConnection(databasePath);
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT id FROM deleted_games;";
+        using var reader = command.ExecuteReader();
+        var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        while (reader.Read())
+        {
+            ids.Add(reader.GetString(0));
+        }
+
+        return ids;
+    }
+
+    private static IReadOnlyList<DeletedGameRow> ReadDeletedGames(string databasePath)
+    {
+        using var connection = OpenConnection(databasePath);
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT id, deleted_at FROM deleted_games;";
+        using var reader = command.ExecuteReader();
+        var rows = new List<DeletedGameRow>();
+        while (reader.Read())
+        {
+            rows.Add(new DeletedGameRow(reader.GetString(0), reader.GetString(1)));
+        }
+
+        return rows;
+    }
+
+    private static IReadOnlyList<PlaySession> ReadPlaySessions(string databasePath)
+    {
+        using var connection = OpenConnection(databasePath);
+        using var command = connection.CreateCommand();
+        command.CommandText =
+            """
+            SELECT id, game_id, machine_id, start_time, end_time, duration_seconds, exit_code, synced
+            FROM play_sessions;
+            """;
+        using var reader = command.ExecuteReader();
+        var sessions = new List<PlaySession>();
+        while (reader.Read())
+        {
+            sessions.Add(new PlaySession(
+                reader.GetString(0),
+                reader.GetString(1),
+                reader.GetString(2),
+                DateTime.Parse(reader.GetString(3)),
+                DateTime.Parse(reader.GetString(4)),
+                TimeSpan.FromSeconds(reader.GetInt64(5)),
+                reader.IsDBNull(6) ? null : reader.GetInt32(6),
+                reader.GetInt64(7) != 0));
+        }
+
+        return sessions;
+    }
+
+    private static void ApplyRemoteDeletions(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        IReadOnlyList<DeletedGameRow> remoteDeletedGames)
+    {
+        foreach (var deletedGame in remoteDeletedGames)
+        {
+            using var tombstone = connection.CreateCommand();
+            tombstone.Transaction = transaction;
+            tombstone.CommandText =
+                """
+                INSERT INTO deleted_games (id, deleted_at)
+                VALUES ($id, $deletedAt)
+                ON CONFLICT(id) DO UPDATE SET deleted_at = MAX(deleted_at, excluded.deleted_at);
+                """;
+            tombstone.Parameters.AddWithValue("$id", deletedGame.Id);
+            tombstone.Parameters.AddWithValue("$deletedAt", deletedGame.DeletedAt);
+            tombstone.ExecuteNonQuery();
+
+            using var delete = connection.CreateCommand();
+            delete.Transaction = transaction;
+            delete.CommandText = "DELETE FROM games WHERE id = $id;";
+            delete.Parameters.AddWithValue("$id", deletedGame.Id);
+            delete.ExecuteNonQuery();
+        }
+    }
+
+    private static void MergeRemotePlaySessions(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        IReadOnlyList<PlaySession> remotePlaySessions,
+        ISet<string> deletedGameIds)
+    {
+        foreach (var session in remotePlaySessions.Where(session => !deletedGameIds.Contains(session.GameId)))
+        {
+            using var insert = connection.CreateCommand();
+            insert.Transaction = transaction;
+            insert.CommandText =
+                """
+                INSERT OR IGNORE INTO play_sessions (
+                    id, game_id, machine_id, start_time, end_time, duration_seconds, exit_code, synced, created_at
+                )
+                VALUES (
+                    $id, $gameId, $machineId, $startTime, $endTime, $durationSeconds, $exitCode, $synced, $createdAt
+                );
+                """;
+            insert.Parameters.AddWithValue("$id", session.Id);
+            insert.Parameters.AddWithValue("$gameId", session.GameId);
+            insert.Parameters.AddWithValue("$machineId", session.MachineId);
+            insert.Parameters.AddWithValue("$startTime", session.StartedAt.ToString("O"));
+            insert.Parameters.AddWithValue("$endTime", session.EndedAt.ToString("O"));
+            insert.Parameters.AddWithValue("$durationSeconds", (long)session.Duration.TotalSeconds);
+            insert.Parameters.AddWithValue("$exitCode", session.ExitCode is null ? DBNull.Value : session.ExitCode.Value);
+            insert.Parameters.AddWithValue("$synced", session.Synced ? 1 : 0);
+            insert.Parameters.AddWithValue("$createdAt", session.EndedAt.ToString("O"));
+            insert.ExecuteNonQuery();
+        }
+
+        using var update = connection.CreateCommand();
+        update.Transaction = transaction;
+        update.CommandText =
+            """
+            UPDATE games
+            SET total_play_seconds = MAX(
+                    total_play_seconds,
+                    (
+                        SELECT COALESCE(SUM(duration_seconds), 0)
+                        FROM play_sessions
+                        WHERE play_sessions.game_id = games.id
+                    )
+                ),
+                last_launch_time = MAX(
+                    COALESCE(last_launch_time, ''),
+                    COALESCE(
+                        (
+                            SELECT MAX(start_time)
+                            FROM play_sessions
+                            WHERE play_sessions.game_id = games.id
+                        ),
+                        ''
+                    )
+                )
+            WHERE EXISTS (
+                SELECT 1 FROM play_sessions WHERE play_sessions.game_id = games.id
+            );
+            """;
+        update.ExecuteNonQuery();
     }
 
     private static void InsertRow(SqliteConnection connection, SqliteTransaction transaction, GameRow row)
@@ -239,4 +409,6 @@ public sealed class SqliteGameLibraryMergeService
         long SortOrder,
         string CreatedAt,
         string UpdatedAt);
+
+    private sealed record DeletedGameRow(string Id, string DeletedAt);
 }

@@ -34,6 +34,9 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
                     <StackPanel Grid.ColumnSpan="2" Margin="0,0,0,18">
@@ -79,7 +82,7 @@
                             Margin="12,0,0,0" />
 
                     <StackPanel Grid.Row="4" Margin="0,16,0,0">
-                        <TextBlock Text="存档目录" Style="{StaticResource FormLabelStyle}" />
+                        <TextBlock Text="存档目录（可选）" Style="{StaticResource FormLabelStyle}" />
                         <TextBox Text="{Binding SavePath, UpdateSourceTrigger=PropertyChanged}"
                                  Style="{StaticResource TextBoxStyle}" />
                     </StackPanel>
@@ -114,7 +117,30 @@
                                  Style="{StaticResource TextBoxStyle}" />
                     </StackPanel>
 
-                    <Border Grid.Row="7"
+                    <StackPanel Grid.Row="7" Margin="0,16,0,0">
+                        <TextBlock Text="工作目录" Style="{StaticResource FormLabelStyle}" />
+                        <TextBox Text="{Binding WorkingDirectory, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource TextBoxStyle}" />
+                    </StackPanel>
+                    <Button Grid.Row="7"
+                            Grid.Column="1"
+                            Content="选择目录"
+                            Command="{Binding BrowseWorkingDirectoryCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            VerticalAlignment="Bottom"
+                            Height="42"
+                            Margin="12,0,0,0" />
+
+                    <StackPanel Grid.Row="8"
+                                Grid.ColumnSpan="2"
+                                Margin="0,16,0,0">
+                        <TextBlock Text="实际监控进程名" Style="{StaticResource FormLabelStyle}" />
+                        <TextBox Text="{Binding MonitorProcessName, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource TextBoxStyle}"
+                                 ToolTip="启动器退出后，继续等待该进程结束再统计游玩时长" />
+                    </StackPanel>
+
+                    <Border Grid.Row="9"
                             Grid.ColumnSpan="2"
                             Style="{StaticResource SettingsOptionRowStyle}"
                             Margin="0,16,0,0">
@@ -123,6 +149,20 @@
                                        Foreground="{DynamicResource TextBrush}"
                                        VerticalAlignment="Center" />
                             <CheckBox IsChecked="{Binding RunAsAdministrator, Mode=TwoWay}"
+                                      Style="{StaticResource ToggleSwitchStyle}"
+                                      HorizontalAlignment="Right" />
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Row="10"
+                            Grid.ColumnSpan="2"
+                            Style="{StaticResource SettingsOptionRowStyle}"
+                            Margin="0,16,0,0">
+                        <Grid>
+                            <TextBlock Text="启用该游戏的云存档同步"
+                                       Foreground="{DynamicResource TextBrush}"
+                                       VerticalAlignment="Center" />
+                            <CheckBox IsChecked="{Binding SyncEnabled, Mode=TwoWay}"
                                       Style="{StaticResource ToggleSwitchStyle}"
                                       HorizontalAlignment="Right" />
                         </Grid>

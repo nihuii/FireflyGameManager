@@ -10,7 +10,10 @@ public sealed class UpdateGameRequest
         string savePath,
         string? coverImagePath,
         string launchArguments = "",
-        bool runAsAdministrator = false)
+        bool runAsAdministrator = false,
+        string workingDirectory = "",
+        string monitorProcessName = "",
+        bool syncEnabled = true)
     {
         Id = id;
         Name = name;
@@ -20,6 +23,9 @@ public sealed class UpdateGameRequest
         CoverImagePath = coverImagePath;
         LaunchArguments = launchArguments;
         RunAsAdministrator = runAsAdministrator;
+        WorkingDirectory = workingDirectory;
+        MonitorProcessName = monitorProcessName;
+        SyncEnabled = syncEnabled;
     }
 
     public string Id { get; }
@@ -37,4 +43,10 @@ public sealed class UpdateGameRequest
     public string LaunchArguments { get; }
 
     public bool RunAsAdministrator { get; }
+
+    public string WorkingDirectory { get; }
+
+    public string MonitorProcessName { get; }
+
+    public bool SyncEnabled { get; }
 }
