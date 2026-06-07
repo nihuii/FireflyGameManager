@@ -1,0 +1,97 @@
+<UserControl x:Class="GameManager.App.Views.ManageGameLibraryView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid>
+        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                      Margin="0,0,0,70">
+            <ItemsControl ItemsSource="{Binding Games}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Width="178"
+                              Height="244"
+                              Margin="0,0,20,24"
+                              ClipToBounds="False">
+                            <Grid.Clip>
+                                <RectangleGeometry x:Name="RoundedCoverClip"
+                                                   Rect="0,0,178,244"
+                                                   RadiusX="12"
+                                                   RadiusY="12" />
+                            </Grid.Clip>
+                            <Border CornerRadius="8"
+                                    ClipToBounds="True">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#1E2521"
+                                                      BlurRadius="12"
+                                                      ShadowDepth="2"
+                                                      Opacity="0.14" />
+                                </Border.Effect>
+                                <Grid Background="#DCE5DD"
+                                      ClipToBounds="True">
+                                    <TextBlock Text="封面"
+                                               Foreground="{StaticResource MutedTextBrush}"
+                                               FontSize="16"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center" />
+                                    <Image Source="{Binding Game.CoverImagePath}"
+                                           Stretch="UniformToFill" />
+                                    <Rectangle VerticalAlignment="Bottom"
+                                               Height="88">
+                                        <Rectangle.Fill>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#00000000" Offset="0" />
+                                                <GradientStop Color="#AA111814" Offset="1" />
+                                            </LinearGradientBrush>
+                                        </Rectangle.Fill>
+                                    </Rectangle>
+                                    <TextBlock Text="{Binding Game.Name}"
+                                               VerticalAlignment="Bottom"
+                                               Margin="14,0,14,15"
+                                               FontSize="16"
+                                               FontWeight="SemiBold"
+                                               Foreground="White"
+                                               TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                            </Border>
+
+                            <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      Width="24"
+                                      Height="24"
+                                      HorizontalAlignment="Right"
+                                      VerticalAlignment="Top"
+                                      Margin="0,10,10,0"
+                                      Background="White" />
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <Border HorizontalAlignment="Right"
+                VerticalAlignment="Bottom"
+                Background="{StaticResource PanelBrush}"
+                BorderBrush="#E2E8E1"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="10">
+            <StackPanel Orientation="Horizontal">
+                <Button Content="完成"
+                        Command="{Binding ExitManagementCommand}"
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        Width="96"
+                        Margin="0,0,10,0" />
+                <Button Content="删除"
+                        Command="{Binding DeleteSelectedCommand}"
+                        Width="104"
+                        Height="40"
+                        Background="#B83A3A"
+                        Foreground="White"
+                        BorderThickness="0" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

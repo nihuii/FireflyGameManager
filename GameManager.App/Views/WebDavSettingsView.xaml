@@ -1,0 +1,162 @@
+<UserControl x:Class="GameManager.App.Views.WebDavSettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid MaxWidth="900" HorizontalAlignment="Left">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.08*" />
+                <ColumnDefinition Width="22" />
+                <ColumnDefinition Width="0.92*" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0">
+                <Border Style="{StaticResource SectionCardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="连接配置"
+                                   Style="{StaticResource SectionTitleStyle}" />
+
+                        <StackPanel Margin="0,4,0,0">
+                            <TextBlock Text="服务器地址" Style="{StaticResource FormLabelStyle}" />
+                            <TextBox Text="{Binding ServerUrl, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource TextBoxStyle}" />
+                        </StackPanel>
+
+                        <StackPanel Margin="0,16,0,0">
+                            <TextBlock Text="账号" Style="{StaticResource FormLabelStyle}" />
+                            <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource TextBoxStyle}" />
+                        </StackPanel>
+
+                        <StackPanel Margin="0,16,0,0">
+                            <TextBlock Text="应用密码" Style="{StaticResource FormLabelStyle}" />
+                            <TextBox Text="{Binding ApplicationPassword, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource TextBoxStyle}" />
+                        </StackPanel>
+
+                        <StackPanel Margin="0,16,0,0">
+                            <TextBlock Text="远程目录" Style="{StaticResource FormLabelStyle}" />
+                            <TextBox Text="{Binding RemoteDirectory, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource TextBoxStyle}" />
+                        </StackPanel>
+
+                        <WrapPanel Margin="0,22,0,0">
+                            <Button Content="保存配置"
+                                    Command="{Binding SaveSettingsCommand}"
+                                    Style="{StaticResource PrimaryButtonStyle}"
+                                    Width="112"
+                                    Margin="0,0,10,10" />
+                            <Button Content="测试连接"
+                                    Command="{Binding TestConnectionCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Width="112"
+                                    Margin="0,0,10,10" />
+                        </WrapPanel>
+
+                        <Border Style="{StaticResource StatusPillStyle}" Margin="0,6,0,0">
+                            <TextBlock Text="{Binding ConnectionStatusText}"
+                                       Style="{StaticResource MutedTextStyle}" />
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <Border x:Name="AdvancedSyncActions"
+                        Style="{StaticResource SectionCardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="高级操作"
+                                   Style="{StaticResource SectionTitleStyle}" />
+                        <TextBlock Text="手动上传和下载用于排查同步问题，日常使用优先点击立即同步。"
+                                   Style="{StaticResource MutedTextStyle}"
+                                   Margin="0,-6,0,16" />
+
+                        <WrapPanel>
+                            <Button Content="上传用户信息"
+                                    Command="{Binding UploadUserDataCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Width="126"
+                                    Margin="0,0,10,10" />
+                            <Button Content="上传存档备份"
+                                    Command="{Binding UploadSaveBackupsCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Width="126"
+                                    Margin="0,0,10,10" />
+                            <Button Content="下载用户信息"
+                                    Command="{Binding DownloadUserDataCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Width="126"
+                                    Margin="0,0,10,10" />
+                            <Button Content="下载存档备份"
+                                    Command="{Binding DownloadSaveBackupsCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Width="126"
+                                    Margin="0,0,10,10" />
+                        </WrapPanel>
+
+                        <Border Style="{StaticResource StatusPillStyle}" Margin="0,6,0,0">
+                            <StackPanel>
+                                <TextBlock Text="{Binding UploadStatusText}"
+                                           Style="{StaticResource MutedTextStyle}" />
+                                <TextBlock Text="{Binding DownloadStatusText}"
+                                           Style="{StaticResource MutedTextStyle}"
+                                           Margin="0,6,0,0" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <StackPanel Grid.Column="2">
+                <Border x:Name="SyncCenterCard"
+                        Style="{StaticResource SectionCardStyle}">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal"
+                                    Margin="0,0,0,14">
+                            <TextBlock Text="同步中心"
+                                       Foreground="{DynamicResource TextBrush}"
+                                       FontSize="18"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center" />
+                            <Button x:Name="SyncPolicyInfoButton"
+                                    Content="i"
+                                    Style="{StaticResource InfoIconButtonStyle}"
+                                    Margin="8,0,0,0">
+                                <Button.ToolTip>
+                                    <ToolTip MaxWidth="320">
+                                        <TextBlock Text="同步策略：游戏信息按更新时间保留较新版本，游玩时长保留较大值；存档备份按文件更新时间保留较新 zip。"
+                                                   TextWrapping="Wrap" />
+                                    </ToolTip>
+                                </Button.ToolTip>
+                            </Button>
+                        </StackPanel>
+
+                        <TextBlock Text="下载坚果云上的用户信息和存档备份，与本机合并后再上传新的同步结果。"
+                                   Style="{StaticResource MutedTextStyle}"
+                                   Margin="0,0,0,22" />
+
+                        <Button Content="立即同步"
+                                Command="{Binding FullSyncCommand}"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Height="46"
+                                FontSize="15" />
+
+                        <Border Style="{StaticResource StatusPillStyle}" Margin="0,18,0,0">
+                            <StackPanel>
+                                <TextBlock Text="同步状态"
+                                           Foreground="{DynamicResource TextBrush}"
+                                           FontWeight="SemiBold"
+                                           Margin="0,0,0,4" />
+                                <TextBlock Text="{Binding SyncStatusText}"
+                                           Style="{StaticResource MutedTextStyle}" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <Button Content="返回游戏库"
+                        Command="{Binding BackCommand}"
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        HorizontalAlignment="Left"
+                        Width="120" />
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

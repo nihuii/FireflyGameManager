@@ -1,0 +1,154 @@
+<UserControl x:Class="GameManager.App.Views.AddGameView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <Style TargetType="ScrollBar"
+               BasedOn="{StaticResource ModernScrollBarStyle}" />
+    </UserControl.Resources>
+
+    <Border Style="{StaticResource SectionCardStyle}"
+            MaxWidth="780"
+            HorizontalAlignment="Left">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <ScrollViewer x:Name="GameFieldsScrollViewer"
+                          Grid.Row="0"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          HorizontalContentAlignment="Stretch">
+                <Grid Margin="0,0,12,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="132" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.ColumnSpan="2" Margin="0,0,0,18">
+                        <TextBlock Text="游戏信息"
+                                   Style="{StaticResource SectionTitleStyle}" />
+                        <TextBlock Text="修改的信息会保存到本地游戏库，并参与后续 WebDAV 同步。"
+                                   Style="{StaticResource MutedTextStyle}"
+                                   Margin="0,-8,0,0" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="1" Grid.ColumnSpan="2">
+                        <TextBlock Text="游戏名称" Style="{StaticResource FormLabelStyle}" />
+                        <TextBox Text="{Binding GameName, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource TextBoxStyle}" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="2" Margin="0,16,0,0">
+                        <TextBlock Text="启动文件" Style="{StaticResource FormLabelStyle}" />
+                        <TextBox Text="{Binding ExecutablePath, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource TextBoxStyle}" />
+                    </StackPanel>
+                    <Button Grid.Row="2"
+                            Grid.Column="1"
+                            Content="选择 EXE"
+                            Command="{Binding BrowseExecutableCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            VerticalAlignment="Bottom"
+                            Height="42"
+                            Margin="12,0,0,0" />
+
+                    <StackPanel Grid.Row="3" Margin="0,16,0,0">
+                        <TextBlock Text="游戏目录" Style="{StaticResource FormLabelStyle}" />
+                        <TextBox Text="{Binding GameRootPath, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource TextBoxStyle}" />
+                    </StackPanel>
+                    <Button Grid.Row="3"
+                            Grid.Column="1"
+                            Content="选择目录"
+                            Command="{Binding BrowseGameRootFolderCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            VerticalAlignment="Bottom"
+                            Height="42"
+                            Margin="12,0,0,0" />
+
+                    <StackPanel Grid.Row="4" Margin="0,16,0,0">
+                        <TextBlock Text="存档目录" Style="{StaticResource FormLabelStyle}" />
+                        <TextBox Text="{Binding SavePath, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource TextBoxStyle}" />
+                    </StackPanel>
+                    <Button Grid.Row="4"
+                            Grid.Column="1"
+                            Content="选择目录"
+                            Command="{Binding BrowseSaveFolderCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            VerticalAlignment="Bottom"
+                            Height="42"
+                            Margin="12,0,0,0" />
+
+                    <StackPanel Grid.Row="5" Margin="0,16,0,0">
+                        <TextBlock Text="封面图片" Style="{StaticResource FormLabelStyle}" />
+                        <TextBox Text="{Binding CoverImagePath, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource TextBoxStyle}" />
+                    </StackPanel>
+                    <Button Grid.Row="5"
+                            Grid.Column="1"
+                            Content="选择图片"
+                            Command="{Binding BrowseCoverImageCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            VerticalAlignment="Bottom"
+                            Height="42"
+                            Margin="12,0,0,0" />
+
+                    <StackPanel Grid.Row="6"
+                                Grid.ColumnSpan="2"
+                                Margin="0,16,0,0">
+                        <TextBlock Text="启动参数" Style="{StaticResource FormLabelStyle}" />
+                        <TextBox Text="{Binding LaunchArguments, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource TextBoxStyle}" />
+                    </StackPanel>
+
+                    <Border Grid.Row="7"
+                            Grid.ColumnSpan="2"
+                            Style="{StaticResource SettingsOptionRowStyle}"
+                            Margin="0,16,0,0">
+                        <Grid>
+                            <TextBlock Text="以管理员身份运行"
+                                       Foreground="{DynamicResource TextBrush}"
+                                       VerticalAlignment="Center" />
+                            <CheckBox IsChecked="{Binding RunAsAdministrator, Mode=TwoWay}"
+                                      Style="{StaticResource ToggleSwitchStyle}"
+                                      HorizontalAlignment="Right" />
+                        </Grid>
+                    </Border>
+                </Grid>
+            </ScrollViewer>
+
+            <Border Grid.Row="1"
+                    BorderBrush="{DynamicResource LineBrush}"
+                    BorderThickness="0,1,0,0"
+                    Margin="0,16,0,0"
+                    Padding="0,16,0,0">
+                <StackPanel x:Name="GameFormActionBar"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Right">
+                    <Button Content="取消"
+                            Command="{Binding CancelCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Width="104"
+                            Margin="0,0,10,0" />
+                    <Button Content="{Binding SubmitButtonText}"
+                            Command="{Binding SaveCommand}"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Width="116" />
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</UserControl>

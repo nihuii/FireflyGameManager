@@ -1,0 +1,22 @@
+以《崩坏：星穹铁道》角色“流萤 / Firefly”为灵感，参考上传的像素角色头像图，提取角色核心视觉元素：银白色短发、浅薄荷绿色发饰、青绿色眼睛、柔和粉色面部、白色与薄荷绿色配色、轻微科幻感、萤火虫发光粒子、可爱的二次元像素头像风格。
+设计一组 Windows 端游戏管理软件图标，类似 Steam 游戏库管理器使用。整体为可爱、精致、清晰的 pixel art icon / 像素风图标，Q版、圆润、干净，低像素但轮廓清楚，小尺寸下也能识别。
+图标使用统一视觉语言：银白色与薄荷绿色为主色，少量浅金色星光点缀，边缘有浅色像素描边，带轻微发光效果。透明背景，1:1 正方形画布，居中构图，不要文字，不要官方 Logo，不要复杂背景，不要写实风格，不要过度细节化。
+
+设计一个 Windows 桌面软件图标，像素风，1:1 正方形画布，透明背景。
+图标以《崩坏：星穹铁道》流萤 / Firefly 为灵感，参考上传的像素头像形象：银白色短发、青绿色眼睛、薄荷绿色发饰、柔和可爱的 Q 版表情。图标整体像一个从背景中抠出来的任务贴纸 / sticker cutout，不要方形底板。
+主体是流萤风格的像素 Q 版头像轮廓，外圈有白色和浅薄荷绿色像素描边，边缘带轻微发光。头像旁边加入游戏管理软件元素：小型像素游戏手柄、游戏启动按钮、星光粒子或小型数据方块，让它看起来像游戏库启动器的桌面图标。
+风格要求：pixel art icon, chibi anime icon, cute game launcher icon, transparent background, clean silhouette, soft mint green glow, small sparkles, readable at 64x64 and 256x256, high-quality pixel art, sticker-like cutout icon.
+
+设计一个软件左侧导航栏图标，用于“游戏库主页”，像素风，透明背景，1:1 构图。
+图标以流萤 / Firefly 的视觉元素为灵感，使用银白色、薄荷绿色、青绿色和浅金色星光点缀。主体是一个像素风的小房子或游戏库入口图标，房子轮廓结合流萤的发饰形状和蝴蝶/萤火虫翅膀意象。房子内部可以加入小型游戏卡片、像素手柄或启动按钮符号，表达“游戏库首页”。
+整体风格与桌面图标一致：可爱、简洁、Q版、二次元科幻 UI 图标风格，清晰像素边缘，浅色描边，轻微发光，适合放在深色软件侧边栏中，小尺寸下也能识别。
+关键词：pixel art sidebar icon, game library home icon, cute anime sci-fi UI, mint green glow, silver white palette, transparent background, clean pixel outline.
+
+设计一个软件左侧导航栏图标，用于“数据同步”，像素风，透明背景，1:1 构图。
+图标以流萤 / Firefly 的视觉元素为灵感，配色为银白色、薄荷绿色、青绿色，少量浅金色星光点缀。主体是两个环形同步箭头，箭头由像素块组成，围绕一个小型发光数据核心或云朵图标旋转。同步箭头的形状可以融入萤火虫光点、蝴蝶翅膀曲线或科幻能量轨迹。
+图标需要简洁、清楚、适合软件侧边栏，像素边缘干净，轮廓明显，带轻微发光效果。整体可爱但具有科技感，与游戏库主页和设置图标保持统一风格。
+关键词：pixel art sync icon, data synchronization, circular arrows, glowing data core, mint green sci-fi glow, chibi anime UI icon, transparent background, clean readable pixel icon.
+
+设计一个软件左侧导航栏图标，用于“设置”，像素风，透明背景，1:1 构图。
+图标以流萤 / Firefly 的视觉元素为灵感，使用银白色、薄荷绿色、青绿色配色。主体是一个像素风齿轮图标，齿轮边缘圆润可爱，不要太机械。齿轮中心加入小型青绿色发光核心，类似科幻能量核心或萤火虫光点。齿轮外侧可以加入极少量星光像素点和浅色描边，让图标与角色主题统一。
+整体风格：cute pixel art gear icon, anime sci-fi UI, mint green glow, clean pixel outline, soft white border, transparent background, readable at small size, suitable for dark sidebar navigation.

@@ -1,0 +1,41 @@
+通用风格要求：
+
+以《崩坏：星穹铁道》角色“流萤 / Firefly”为主题灵感，参考上传的角色形象图，提取角色的核心视觉元素：银白色短发、青绿色眼睛、白色与薄荷绿色配色、科幻装甲感、萤火虫/蝴蝶翅膀意象、柔和发光能量、轻量未来感。
+设计为 Windows 端游戏管理软件图标套组，整体风格统一，简洁、现代、精致、二次元科幻 UI 图标风格，适合类似 Steam 的游戏库管理软件。
+图标需要清晰可识别，小尺寸下也能看清轮廓。使用半扁平化矢量图标风格，干净线条，柔和渐变，高级感，轻微发光边缘，透明背景，1:1 正方形画布，居中构图。
+不要添加文字，不要添加官方游戏 Logo，不要复杂背景，不要写实照片风格，不要过度细节化，不要模糊，不要低清晰度。
+
+桌面图标提示词：
+
+为 Windows 桌面应用设计一个软件图标，主题来自《崩坏：星穹铁道》角色流萤。图标主体像一个精致的“任务贴纸 / cutout sticker”，以角色主题图形作为整体轮廓，背景完全透明。
+图标轮廓可以融合流萤的头像剪影、萤火虫翅膀、科幻装甲胸甲、发光晶体或游戏启动器徽章形状。整体外形饱满、圆润、有辨识度，像贴在软件界面上的独立贴纸。
+主色为银白色、薄荷绿、青绿色、浅灰蓝，局部加入柔和荧光绿光效。图标边缘带有干净的白色描边或半透明描边，增强贴纸感。
+画面应简洁高级，适合作为 Windows .ico 应用图标，在 256x256、128x128、64x64 小尺寸下仍然清晰。
+transparent background, 1:1 aspect ratio, centered composition, clean vector icon, soft glow, anime sci-fi style, polished app icon, sticker-like cutout, high readability.
+
+游戏库主页图标提示词：
+
+为软件左侧导航栏设计“游戏库主页”图标，主题来自流萤。图标需要表达“游戏库、主页、游戏集合、启动器首页”的含义。
+图形可以使用一个简洁的游戏手柄、游戏卡片、主页小屋轮廓或书架式游戏库图形，并融合流萤主题元素：薄荷绿发光线条、萤火虫翅膀形状、科幻装甲边框、银白色与青绿色配色。
+图标应适合侧边栏使用，简洁、扁平、线性与轻微填充结合，透明背景，无文字，轮廓清楚，和桌面图标保持同一视觉语言。
+1:1 aspect ratio, transparent background, minimal sci-fi anime UI icon, clean lines, mint green glow, silver white details, game library home icon, highly readable at small size.
+
+数据同步图标提示词：
+
+为软件左侧导航栏设计“数据同步”图标，主题来自流萤。图标需要表达“云同步、数据传输、存档同步、双向同步”的含义。
+图形可以使用循环箭头、云朵、数据节点、发光粒子流或双向传输线，并融合流萤主题元素：萤火虫光点、薄荷绿能量流、银白色科幻装甲线条、轻微蝴蝶翅膀轮廓。
+整体应像游戏管理软件中的同步功能按钮，简洁现代，科技感强，侧边栏小图标也能清楚识别。
+透明背景，无文字，居中构图，线条干净，柔和青绿色发光，和其他图标保持统一风格。
+1:1 aspect ratio, transparent background, sci-fi UI icon, data sync icon, cloud sync, circular arrows, mint green particles, silver white outline, clean vector style, readable at small size.
+
+设置图标提示词：
+
+为软件左侧导航栏设计“设置”图标，主题来自流萤。图标需要表达“系统设置、参数调整、偏好配置”的含义。
+图形可以使用齿轮、六边形机械环、科幻装甲圆环或能量核心结构，并融合流萤主题元素：银白色机械外壳、薄荷绿发光核心、萤火虫光点、柔和青绿色能量纹路。
+图标要简洁、现代、科幻感强，适合作为软件侧边栏设置按钮。
+透明背景，无文字，边缘清晰，线条精致，和游戏库主页、数据同步图标保持一致的粗细、配色和光效。
+1:1 aspect ratio, transparent background, settings gear icon, sci-fi anime UI style, mint green glowing core, silver white mechanical ring, clean vector icon, high readability.
+
+负面提示词：
+
+text, letters, watermark, logo, official game logo, copyright logo, messy background, complex background, realistic photo, 3D render, blurry, low resolution, pixelated, noisy, over-detailed, too many small decorations, bad anatomy, extra limbs, distorted face, asymmetrical icon, uncentered composition, dark muddy colors, harsh shadows, cropped icon, square background, solid background, frame background

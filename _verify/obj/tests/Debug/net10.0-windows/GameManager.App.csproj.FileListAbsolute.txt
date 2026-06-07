@@ -1,0 +1,14 @@
+D:\Study\Projects\FireflyGameManager\_verify\obj\tests\Debug\net10.0-windows\GameManager.App.csproj.AssemblyReference.cache
+D:\Study\Projects\FireflyGameManager\_verify\obj\tests\Debug\net10.0-windows\Views\AddGameView.baml
+D:\Study\Projects\FireflyGameManager\_verify\obj\tests\Debug\net10.0-windows\Views\GameDetailView.baml
+D:\Study\Projects\FireflyGameManager\_verify\obj\tests\Debug\net10.0-windows\Views\GameLibraryView.baml
+D:\Study\Projects\FireflyGameManager\_verify\obj\tests\Debug\net10.0-windows\Views\ManageGameLibraryView.baml
+D:\Study\Projects\FireflyGameManager\_verify\obj\tests\Debug\net10.0-windows\MainWindow.g.cs
+D:\Study\Projects\FireflyGameManager\_verify\obj\tests\Debug\net10.0-windows\Views\AddGameView.g.cs
+D:\Study\Projects\FireflyGameManager\_verify\obj\tests\Debug\net10.0-windows\Views\GameDetailView.g.cs
+D:\Study\Projects\FireflyGameManager\_verify\obj\tests\Debug\net10.0-windows\Views\GameLibraryView.g.cs
+D:\Study\Projects\FireflyGameManager\_verify\obj\tests\Debug\net10.0-windows\Views\ManageGameLibraryView.g.cs
+D:\Study\Projects\FireflyGameManager\_verify\obj\tests\Debug\net10.0-windows\App.g.cs
+D:\Study\Projects\FireflyGameManager\_verify\obj\tests\Debug\net10.0-windows\GeneratedInternalTypeHelper.g.cs
+D:\Study\Projects\FireflyGameManager\_verify\obj\tests\Debug\net10.0-windows\GameManager.App_MarkupCompile.cache
+D:\Study\Projects\FireflyGameManager\_verify\obj\tests\Debug\net10.0-windows\GameManager.App_MarkupCompile.lref
