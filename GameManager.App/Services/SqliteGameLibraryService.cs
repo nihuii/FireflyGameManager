@@ -378,7 +378,7 @@ public sealed class SqliteGameLibraryService : IGameLibraryService
         using var command = connection.CreateCommand();
         command.CommandText =
             """
-            SELECT game_id, provider, subject_id, is_linked, original_name, localized_name, summary,
+            SELECT game_id, provider, subject_id, is_linked, is_partial, original_name, localized_name, summary,
                    release_date, developer, publisher, tags_json, image_url, subject_url,
                    source_updated_at, updated_at
             FROM game_external_metadata
@@ -861,6 +861,7 @@ public sealed class SqliteGameLibraryService : IGameLibraryService
                 provider TEXT NOT NULL,
                 subject_id TEXT NOT NULL,
                 is_linked INTEGER NOT NULL DEFAULT 1,
+                is_partial INTEGER NOT NULL DEFAULT 0,
                 original_name TEXT NOT NULL DEFAULT '',
                 localized_name TEXT NOT NULL DEFAULT '',
                 summary TEXT NOT NULL DEFAULT '',
@@ -903,6 +904,7 @@ public sealed class SqliteGameLibraryService : IGameLibraryService
         EnsureColumn(connection, "working_directory", "TEXT NOT NULL DEFAULT ''");
         EnsureColumn(connection, "monitor_process_name", "TEXT NOT NULL DEFAULT ''");
         EnsureColumn(connection, "sync_enabled", "INTEGER NOT NULL DEFAULT 1");
+        EnsureColumn(connection, "game_external_metadata", "is_partial", "INTEGER NOT NULL DEFAULT 0");
         RepairDegradedExternalMetadataLinks(connection);
         SeedLegacyPlaySessions(connection);
     }
@@ -990,7 +992,7 @@ public sealed class SqliteGameLibraryService : IGameLibraryService
         command.Transaction = transaction;
         command.CommandText =
             """
-            SELECT game_id, provider, subject_id, is_linked, original_name, localized_name, summary,
+            SELECT game_id, provider, subject_id, is_linked, is_partial, original_name, localized_name, summary,
                    release_date, developer, publisher, tags_json, image_url, subject_url,
                    source_updated_at, updated_at
             FROM game_external_metadata
@@ -1010,21 +1012,22 @@ public sealed class SqliteGameLibraryService : IGameLibraryService
                 Provider = reader.GetString(1),
                 SubjectId = reader.GetString(2),
                 IsLinked = reader.GetInt64(3) != 0,
-                OriginalName = reader.GetString(4),
-                LocalizedName = reader.GetString(5),
-                Summary = reader.GetString(6),
-                ReleaseDate = reader.GetString(7),
-                Developer = reader.GetString(8),
-                Publisher = reader.GetString(9),
-                Tags = JsonSerializer.Deserialize<List<string>>(reader.GetString(10)) ?? [],
-                ImageUrl = reader.GetString(11),
-                SubjectUrl = reader.GetString(12),
-                SourceUpdatedAtUtc = ParseUtcDate(reader.GetString(13)) ?? DateTime.MinValue
+                IsPartial = reader.GetInt64(4) != 0,
+                OriginalName = reader.GetString(5),
+                LocalizedName = reader.GetString(6),
+                Summary = reader.GetString(7),
+                ReleaseDate = reader.GetString(8),
+                Developer = reader.GetString(9),
+                Publisher = reader.GetString(10),
+                Tags = JsonSerializer.Deserialize<List<string>>(reader.GetString(11)) ?? [],
+                ImageUrl = reader.GetString(12),
+                SubjectUrl = reader.GetString(13),
+                SourceUpdatedAtUtc = ParseUtcDate(reader.GetString(14)) ?? DateTime.MinValue
             };
             return ExternalGameMetadataCloudSnapshot.FromMetadata(
                 reader.GetString(0),
                 metadata,
-                ParseUtcDate(reader.GetString(14)) ?? metadata.SourceUpdatedAtUtc);
+                ParseUtcDate(reader.GetString(15)) ?? metadata.SourceUpdatedAtUtc);
         }
         catch (Exception exception) when (exception is JsonException or FormatException or InvalidCastException)
         {
@@ -1047,12 +1050,12 @@ public sealed class SqliteGameLibraryService : IGameLibraryService
         command.CommandText =
             """
             INSERT INTO game_external_metadata (
-                game_id, provider, subject_id, is_linked, original_name, localized_name, summary,
+                game_id, provider, subject_id, is_linked, is_partial, original_name, localized_name, summary,
                 release_date, developer, publisher, tags_json, image_url, subject_url,
                 source_updated_at, imported_at, updated_at
             )
             VALUES (
-                $gameId, $provider, $subjectId, $isLinked, $originalName, $localizedName, $summary,
+                $gameId, $provider, $subjectId, $isLinked, $isPartial, $originalName, $localizedName, $summary,
                 $releaseDate, $developer, $publisher, $tagsJson, $imageUrl, $subjectUrl,
                 $sourceUpdatedAt, $importedAt, $updatedAt
             )
@@ -1060,6 +1063,7 @@ public sealed class SqliteGameLibraryService : IGameLibraryService
                 provider = excluded.provider,
                 subject_id = excluded.subject_id,
                 is_linked = excluded.is_linked,
+                is_partial = excluded.is_partial,
                 original_name = excluded.original_name,
                 localized_name = excluded.localized_name,
                 summary = excluded.summary,
@@ -1076,6 +1080,7 @@ public sealed class SqliteGameLibraryService : IGameLibraryService
         command.Parameters.AddWithValue("$provider", metadata.Provider);
         command.Parameters.AddWithValue("$subjectId", metadata.SubjectId);
         command.Parameters.AddWithValue("$isLinked", metadata.IsLinked ? 1 : 0);
+        command.Parameters.AddWithValue("$isPartial", metadata.IsPartial ? 1 : 0);
         command.Parameters.AddWithValue("$originalName", metadata.OriginalName);
         command.Parameters.AddWithValue("$localizedName", metadata.LocalizedName);
         command.Parameters.AddWithValue("$summary", metadata.Summary);
@@ -1241,6 +1246,7 @@ public sealed class SqliteGameLibraryService : IGameLibraryService
             left.Provider == right.Provider &&
             left.SubjectId == right.SubjectId &&
             left.IsLinked == right.IsLinked &&
+            left.IsPartial == right.IsPartial &&
             left.OriginalName == right.OriginalName &&
             left.LocalizedName == right.LocalizedName &&
             left.Summary == right.Summary &&
@@ -1345,8 +1351,17 @@ public sealed class SqliteGameLibraryService : IGameLibraryService
 
     private static void EnsureColumn(SqliteConnection connection, string columnName, string definition)
     {
+        EnsureColumn(connection, "games", columnName, definition);
+    }
+
+    private static void EnsureColumn(
+        SqliteConnection connection,
+        string tableName,
+        string columnName,
+        string definition)
+    {
         using var check = connection.CreateCommand();
-        check.CommandText = "SELECT COUNT(*) FROM pragma_table_info('games') WHERE name = $name;";
+        check.CommandText = $"SELECT COUNT(*) FROM pragma_table_info('{tableName}') WHERE name = $name;";
         check.Parameters.AddWithValue("$name", columnName);
         if ((long)check.ExecuteScalar()! > 0)
         {
@@ -1354,7 +1369,7 @@ public sealed class SqliteGameLibraryService : IGameLibraryService
         }
 
         using var alter = connection.CreateCommand();
-        alter.CommandText = $"ALTER TABLE games ADD COLUMN {columnName} {definition};";
+        alter.CommandText = $"ALTER TABLE {tableName} ADD COLUMN {columnName} {definition};";
         alter.ExecuteNonQuery();
     }
 

@@ -78,15 +78,6 @@ public sealed class WebDavGameSyncService : IWebDavGameSyncService
                 game.UpdatedAtUtc.ToUniversalTime() > existingMetadata.UpdatedAtUtc.ToUniversalTime();
 
             await PutJsonAsync(client, settings, [.. gameRoot, "metadata.json"], metadata);
-            if (game.ExternalMetadata is not null)
-            {
-                await PutJsonAsync(
-                    client,
-                    settings,
-                    [.. gameRoot, "external-metadata.json"],
-                    ExternalGameMetadataCloudSnapshot.FromMetadata(game.Id, game.ExternalMetadata, game.UpdatedAtUtc));
-            }
-
             await PutJsonAsync(client, settings, [.. gameRoot, "paths", $"{machineId}.json"], new MachineGamePath
             {
                 MachineId = machineId,

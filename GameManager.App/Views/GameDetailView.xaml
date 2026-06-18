@@ -282,6 +282,7 @@
                                         Margin="0,0,8,0" />
                                 <Button Content="来源"
                                         Command="{Binding OpenExternalSourceCommand}"
+                                        ToolTip="外部浏览器需要单独登录 Bangumi"
                                         Style="{StaticResource DetailMiniButtonStyle}"
                                         Margin="0,0,8,0" />
                                 <Button Content="解除关联"

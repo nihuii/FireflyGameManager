@@ -169,7 +169,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         this.syncLogService = syncLogService ?? new InMemorySyncLogService();
         this.bangumiApiClient = bangumiApiClient ?? new BangumiApiClient();
         this.bangumiAccountStore = bangumiAccountStore ?? new JsonBangumiAccountStore(AppPaths.BangumiAccountPath);
-        this.metadataProvider = metadataProvider ?? new BangumiGameMetadataProvider(this.bangumiApiClient);
+        this.metadataProvider = metadataProvider ?? new BangumiGameMetadataProvider(this.bangumiApiClient, this.bangumiAccountStore);
         this.remoteImageCacheService = remoteImageCacheService ?? new RemoteImageCacheService(AppPaths.MetadataCacheDirectory);
         Library = new GameLibraryViewModel(gameLibraryService.GetGames(), ShowGameDetail, DeleteGame, PinGame, ShowEditGame);
         currentViewModel = Library;

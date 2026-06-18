@@ -9,13 +9,18 @@ public sealed record GameMetadataSearchResult(
     string ImageUrl,
     string SummaryPreview)
 {
+    public IReadOnlyList<string> Aliases { get; init; } = [];
+
+    public string Developer { get; init; } = string.Empty;
+
     public string DisplayName => string.IsNullOrWhiteSpace(LocalizedName) ? Name : LocalizedName;
 
     public string AuxiliaryInfo => string.Join(" · ", new[]
     {
         Provider,
         string.Equals(DisplayName, Name, StringComparison.OrdinalIgnoreCase) ? string.Empty : Name,
-        ReleaseDate
+        ReleaseDate,
+        Developer
     }.Where(value => !string.IsNullOrWhiteSpace(value)));
 
     public string CompactSummaryPreview => string.IsNullOrWhiteSpace(SummaryPreview)

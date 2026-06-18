@@ -1,9 +1,7 @@
-using System.Globalization;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Text;
 using System.Text.Json;
 using GameManager.App.Models;
 
@@ -111,11 +109,11 @@ public sealed class BangumiApiClient : IBangumiApiClient
         }
     }
 
-    private async Task<IReadOnlyList<GameMetadataSearchResult>> SearchLegacyGamesAsync(
+    public async Task<IReadOnlyList<GameMetadataSearchResult>> SearchLegacyGamesAsync(
         string query,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken = default)
     {
-        var path = $"/search/subject/{Uri.EscapeDataString(query)}?type=4&responseGroup=small&max_results=20";
+        var path = $"/search/subject/{Uri.EscapeDataString(query)}?type=4&responseGroup=large&max_results=20";
         using var request = CreateRequest(HttpMethod.Get, path);
         using var response = await SendAsync(request, cancellationToken);
         using var document = await ReadDocumentAsync(response, cancellationToken);
@@ -135,9 +133,28 @@ public sealed class BangumiApiClient : IBangumiApiClient
         string subjectId,
         CancellationToken cancellationToken = default)
     {
+        return await GetGameDetailsCoreAsync(subjectId, null, cancellationToken);
+    }
+
+    public async Task<ExternalGameMetadata?> GetGameDetailsAsync(
+        string subjectId,
+        string accessToken,
+        CancellationToken cancellationToken = default)
+    {
+        return await GetGameDetailsCoreAsync(subjectId, accessToken, cancellationToken);
+    }
+
+    private async Task<ExternalGameMetadata?> GetGameDetailsCoreAsync(
+        string subjectId,
+        string? accessToken,
+        CancellationToken cancellationToken)
+    {
         for (var attempt = 0; attempt < 2; attempt++)
         {
-            using var request = CreateRequest(HttpMethod.Get, $"/v0/subjects/{Uri.EscapeDataString(subjectId)}");
+            using var request = CreateRequest(
+                HttpMethod.Get,
+                $"/v0/subjects/{Uri.EscapeDataString(subjectId)}",
+                accessToken);
             using var response = await SendAsync(request, cancellationToken, allowNotFound: true);
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
@@ -224,7 +241,7 @@ public sealed class BangumiApiClient : IBangumiApiClient
             {
                 Result,
                 Index,
-                Rank = GetSearchRank(query, Result),
+                Rank = MetadataMatchScorer.Score(query, Result),
                 Completeness = GetCompletenessScore(Result)
             })
             .Where(item => !string.IsNullOrWhiteSpace(item.Result.SubjectId))
@@ -244,60 +261,7 @@ public sealed class BangumiApiClient : IBangumiApiClient
     }
 
     private static bool HasStrongTitleMatch(string query, IEnumerable<GameMetadataSearchResult> results) =>
-        results.Any(result => GetSearchRank(query, result) <= 1);
-
-    private static int GetSearchRank(string query, GameMetadataSearchResult result)
-    {
-        var normalizedQuery = NormalizeSearchText(query);
-        if (string.IsNullOrWhiteSpace(normalizedQuery))
-        {
-            return 10;
-        }
-
-        var titles = new[] { result.LocalizedName, result.Name, result.DisplayName }
-            .Where(title => !string.IsNullOrWhiteSpace(title))
-            .Select(NormalizeSearchText)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-        if (titles.Any(title => string.Equals(title, normalizedQuery, StringComparison.OrdinalIgnoreCase)))
-        {
-            return 0;
-        }
-
-        if (titles.Any(title => title.StartsWith(normalizedQuery, StringComparison.OrdinalIgnoreCase)))
-        {
-            return 1;
-        }
-
-        if (titles.Any(title => title.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase)))
-        {
-            return 2;
-        }
-
-        return 10;
-    }
-
-    private static string NormalizeSearchText(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return string.Empty;
-        }
-
-        var normalized = value.Normalize(NormalizationForm.FormKC);
-        var builder = new StringBuilder(normalized.Length);
-        foreach (var character in normalized)
-        {
-            var category = CharUnicodeInfo.GetUnicodeCategory(character);
-            if (char.IsLetterOrDigit(character) ||
-                category is UnicodeCategory.NonSpacingMark or UnicodeCategory.SpacingCombiningMark)
-            {
-                builder.Append(character);
-            }
-        }
-
-        return builder.ToString();
-    }
+        results.Any(result => MetadataMatchScorer.Score(query, result) <= 1);
 
     private static int GetCompletenessScore(GameMetadataSearchResult result)
     {

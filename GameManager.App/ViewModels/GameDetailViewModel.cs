@@ -104,6 +104,10 @@ public sealed class GameDetailViewModel : ViewModelBase
         this.bangumiAccountStore = bangumiAccountStore;
         this.bangumiApiClient = bangumiApiClient;
         this.remoteImageCacheService = remoteImageCacheService;
+        if (game.ExternalMetadata?.IsPartial == true)
+        {
+            externalMetadataStatusText = "当前保存的是部分资料；连接或重新连接 Bangumi 账号后可再次刷新";
+        }
         BackCommand = new RelayCommand(_ => goBack());
         StartGameCommand = new AsyncRelayCommand(_ => StartGameAsync());
         BackupSaveCommand = new AsyncRelayCommand(_ => BackupSaveAsync(), _ => HasSavePath);
@@ -749,15 +753,26 @@ public sealed class GameDetailViewModel : ViewModelBase
         {
             MetadataRefreshPreview = null;
             ExternalMetadataStatusText = "正在刷新在线资料...";
-            var refreshed = await metadataProvider.GetDetailsAsync(current.SubjectId);
+            var lookup = await metadataProvider.LookupDetailsAsync(current.SubjectId, Game.Name);
+            var refreshed = lookup.Metadata;
             if (refreshed is null)
             {
-                ExternalMetadataStatusText = "在线条目不存在或暂时不可用";
+                ExternalMetadataStatusText = lookup.Status == GameMetadataLookupStatus.AccountReconnectRequired
+                    ? "Bangumi 账号需要重新连接，暂时无法确认在线条目"
+                    : "在线条目已删除，或搜索与详情均不存在";
                 return;
             }
 
             MetadataRefreshPreview = refreshed;
-            ExternalMetadataStatusText = "在线资料已读取，请确认需要更新的字段";
+            ExternalMetadataStatusText = lookup.Status switch
+            {
+                GameMetadataLookupStatus.Partial => "已通过搜索恢复部分资料，请确认需要更新的字段",
+                GameMetadataLookupStatus.AccountReconnectRequired when refreshed.IsPartial =>
+                    "已通过搜索恢复部分资料；Bangumi 账号需要重新连接，重连后可继续补齐字段",
+                GameMetadataLookupStatus.AccountReconnectRequired =>
+                    "已读取当前可用资料；Bangumi 账号需要重新连接，部分字段可能缺失",
+                _ => "在线资料已读取，请确认需要更新的字段"
+            };
         }
         catch (Exception ex)
         {
@@ -827,7 +842,9 @@ public sealed class GameDetailViewModel : ViewModelBase
                 mergedMetadata));
             gameUpdated(Game);
             MetadataRefreshPreview = null;
-            ExternalMetadataStatusText = "已应用选中的在线资料字段";
+            ExternalMetadataStatusText = mergedMetadata.IsPartial
+                ? "已应用选中的在线字段；当前仍为部分资料"
+                : "已应用选中的在线资料字段";
         }
         catch (Exception ex)
         {
@@ -866,6 +883,7 @@ public sealed class GameDetailViewModel : ViewModelBase
         var url = Game.ExternalMetadata?.SubjectUrl;
         if (!string.IsNullOrWhiteSpace(url))
         {
+            ExternalMetadataStatusText = "正在外部浏览器打开来源；外部浏览器需要单独登录 Bangumi";
             Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
         }
     }

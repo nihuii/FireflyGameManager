@@ -16,7 +16,11 @@ internal static class BangumiDtoMapper
             localizedName,
             GetDate(subject),
             GetImageUrl(subject),
-            GetString(subject, "summary"));
+            GetString(subject, "summary"))
+        {
+            Aliases = GetAliases(subject),
+            Developer = GetInfoboxValue(subject, "开发", "开发商", "游戏开发", "Developer")
+        };
     }
 
     public static ExternalGameMetadata ToMetadata(JsonElement subject)
@@ -132,6 +136,44 @@ internal static class BangumiDtoMapper
         return tags.EnumerateArray()
             .Select(tag => GetString(tag, "name"))
             .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private static IReadOnlyList<string> GetAliases(JsonElement subject)
+    {
+        var aliases = new List<string>();
+        if (subject.TryGetProperty("aliases", out var directAliases) && directAliases.ValueKind == JsonValueKind.Array)
+        {
+            aliases.AddRange(directAliases.EnumerateArray()
+                .Where(value => value.ValueKind == JsonValueKind.String)
+                .Select(value => value.GetString() ?? string.Empty));
+        }
+
+        if (subject.TryGetProperty("infobox", out var infobox) && infobox.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in infobox.EnumerateArray())
+            {
+                var key = GetString(item, "key");
+                if (key is not ("别名" or "Alias" or "Aliases") || !item.TryGetProperty("value", out var value))
+                {
+                    continue;
+                }
+
+                if (value.ValueKind == JsonValueKind.String)
+                {
+                    aliases.Add(value.GetString() ?? string.Empty);
+                }
+                else if (value.ValueKind == JsonValueKind.Array)
+                {
+                    aliases.AddRange(value.EnumerateArray().Select(entry =>
+                        entry.ValueKind == JsonValueKind.String ? entry.GetString() ?? string.Empty : GetString(entry, "v")));
+                }
+            }
+        }
+
+        return aliases
+            .Where(value => !string.IsNullOrWhiteSpace(value))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
     }

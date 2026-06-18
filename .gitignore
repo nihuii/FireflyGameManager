@@ -1,0 +1,21 @@
+# Visual Studio / IDE state
+.vs/
+*.user
+*.suo
+
+# .NET build and test outputs
+**/bin/
+**/obj/
+artifacts/
+.codex-artifacts/
+TestResults/
+*.trx
+
+# Local verification captures and temporary files
+_verify/
+*.tmp
+*.log
+
+# OS metadata
+Thumbs.db
+Desktop.ini

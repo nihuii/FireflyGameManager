@@ -8,6 +8,8 @@ public sealed record ExternalGameMetadata
 
     public bool IsLinked { get; init; } = true;
 
+    public bool IsPartial { get; init; }
+
     public string OriginalName { get; init; } = string.Empty;
 
     public string LocalizedName { get; init; } = string.Empty;

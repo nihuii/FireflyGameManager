@@ -12,6 +12,8 @@ public sealed record ExternalGameMetadataCloudSnapshot
 
     public bool IsLinked { get; init; } = true;
 
+    public bool IsPartial { get; init; }
+
     public string OriginalName { get; init; } = string.Empty;
 
     public string LocalizedName { get; init; } = string.Empty;
@@ -45,6 +47,7 @@ public sealed record ExternalGameMetadataCloudSnapshot
             Provider = metadata.Provider,
             SubjectId = metadata.SubjectId,
             IsLinked = metadata.IsLinked,
+            IsPartial = metadata.IsPartial,
             OriginalName = metadata.OriginalName,
             LocalizedName = metadata.LocalizedName,
             Summary = metadata.Summary,
@@ -66,6 +69,7 @@ public sealed record ExternalGameMetadataCloudSnapshot
             Provider = Provider,
             SubjectId = SubjectId,
             IsLinked = IsLinked,
+            IsPartial = IsPartial,
             OriginalName = OriginalName,
             LocalizedName = LocalizedName,
             Summary = Summary,

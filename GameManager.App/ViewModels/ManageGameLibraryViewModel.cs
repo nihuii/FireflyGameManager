@@ -11,6 +11,7 @@ public sealed class ManageGameLibraryViewModel : ViewModelBase
 {
     private readonly RelayCommand deleteSelectedCommand;
     private readonly AsyncRelayCommand applyMatchedMetadataCommand;
+    private readonly AsyncRelayCommand retryMetadataMatchCommand;
     private readonly IGameLibraryService? gameLibraryService;
     private readonly IGameMetadataProvider? metadataProvider;
     private readonly Action<Game> gameUpdated;
@@ -45,6 +46,10 @@ public sealed class ManageGameLibraryViewModel : ViewModelBase
             _ => ApplyMatchedMetadataAsync(),
             _ => CanApplyMatchedMetadata);
         ApplyMatchedMetadataCommand = applyMatchedMetadataCommand;
+        retryMetadataMatchCommand = new AsyncRelayCommand(
+            parameter => parameter is ManageGameItemViewModel item ? MatchItemAsync(item) : Task.CompletedTask,
+            parameter => metadataProvider is not null && parameter is ManageGameItemViewModel);
+        RetryMetadataMatchCommand = retryMetadataMatchCommand;
         ExitManagementCommand = new RelayCommand(_ => exitManagement());
     }
 
@@ -55,6 +60,8 @@ public sealed class ManageGameLibraryViewModel : ViewModelBase
     public ICommand MatchUnlinkedMetadataCommand { get; }
 
     public ICommand ApplyMatchedMetadataCommand { get; }
+
+    public ICommand RetryMetadataMatchCommand { get; }
 
     public ICommand ExitManagementCommand { get; }
 
@@ -69,7 +76,7 @@ public sealed class ManageGameLibraryViewModel : ViewModelBase
     private bool CanApplyMatchedMetadata =>
         gameLibraryService is not null &&
         metadataProvider is not null &&
-        Games.Any(game => game.IsSelected && game.MetadataMatchResult is not null);
+        Games.Any(game => game.IsSelected && game.SelectedMetadataMatchResult is not null);
 
     private async Task MatchUnlinkedMetadataAsync()
     {
@@ -91,23 +98,10 @@ public sealed class ManageGameLibraryViewModel : ViewModelBase
         BatchMetadataStatusText = $"正在匹配 {candidates.Count} 个未关联游戏...";
         foreach (var item in candidates)
         {
-            try
+            await MatchItemAsync(item);
+            if (item.MetadataMatchCandidates.Count > 0)
             {
-                var results = await metadataProvider.SearchAsync(item.Game.Name);
-                var result = results.FirstOrDefault();
-                item.MetadataMatchResult = result;
-                item.MetadataMatchStatusText = result is null
-                    ? "未找到候选"
-                    : $"待确认：{result.DisplayName}";
-                if (result is not null)
-                {
-                    matched++;
-                }
-            }
-            catch (Exception ex)
-            {
-                item.MetadataMatchResult = null;
-                item.MetadataMatchStatusText = $"匹配失败：{ex.Message}";
+                matched++;
             }
         }
 
@@ -172,6 +166,42 @@ public sealed class ManageGameLibraryViewModel : ViewModelBase
         applyMatchedMetadataCommand.RaiseCanExecuteChanged();
     }
 
+    private async Task MatchItemAsync(ManageGameItemViewModel item)
+    {
+        if (metadataProvider is null)
+        {
+            return;
+        }
+
+        item.MetadataMatchCandidates.Clear();
+        item.SelectedMetadataMatchResult = null;
+        item.IsHighConfidenceMatch = false;
+        item.MetadataMatchStatusText = "正在匹配...";
+        try
+        {
+            var results = (await metadataProvider.SearchAsync(item.Game.Name)).Take(5).ToList();
+            foreach (var result in results)
+            {
+                item.MetadataMatchCandidates.Add(result);
+            }
+
+            var exact = results.FirstOrDefault(result => MetadataMatchScorer.IsExactMatch(item.Game.Name, result));
+            item.SelectedMetadataMatchResult = exact;
+            item.IsHighConfidenceMatch = exact is not null;
+            item.MetadataMatchStatusText = exact is not null
+                ? $"待确认：{exact.DisplayName}"
+                : results.Count == 0
+                    ? "未找到候选"
+                    : $"需手动选择（{results.Count} 个候选）";
+        }
+        catch (Exception ex)
+        {
+            item.MetadataMatchStatusText = $"匹配失败：{ex.Message}";
+        }
+
+        applyMatchedMetadataCommand.RaiseCanExecuteChanged();
+    }
+
     private void DeleteSelected(Action<IReadOnlyList<Game>> deleteGames)
     {
         var selected = Games.Where(game => game.IsSelected).ToList();
@@ -199,7 +229,8 @@ public sealed class ManageGameLibraryViewModel : ViewModelBase
             applyMatchedMetadataCommand.RaiseCanExecuteChanged();
         }
 
-        if (e.PropertyName == nameof(ManageGameItemViewModel.MetadataMatchResult))
+        if (e.PropertyName is nameof(ManageGameItemViewModel.MetadataMatchResult) or
+            nameof(ManageGameItemViewModel.SelectedMetadataMatchResult))
         {
             applyMatchedMetadataCommand.RaiseCanExecuteChanged();
         }

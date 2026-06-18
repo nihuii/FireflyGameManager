@@ -36,13 +36,13 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Grid Width="178"
-                              Height="244"
+                        <Grid Width="210"
+                              Height="330"
                               Margin="0,0,20,24"
                               ClipToBounds="False">
                             <Grid.Clip>
                                 <RectangleGeometry x:Name="RoundedCoverClip"
-                                                   Rect="0,0,178,244"
+                                                   Rect="0,0,210,330"
                                                    RadiusX="12"
                                                    RadiusY="12" />
                             </Grid.Clip>
@@ -56,34 +56,70 @@
                                 </Border.Effect>
                                 <Grid Background="{DynamicResource SurfaceBrush}"
                                       ClipToBounds="True">
-                                    <TextBlock Text="封面"
-                                               Foreground="{DynamicResource MutedTextBrush}"
-                                               FontSize="16"
-                                               HorizontalAlignment="Center"
-                                               VerticalAlignment="Center" />
-                                    <Image Source="{Binding Game.CoverImagePath}"
-                                           Stretch="UniformToFill" />
-                                    <Rectangle VerticalAlignment="Bottom"
-                                               Height="88">
-                                        <Rectangle.Fill>
-                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                                <GradientStop Color="#00000000" Offset="0" />
-                                                <GradientStop Color="#AA111814" Offset="1" />
-                                            </LinearGradientBrush>
-                                        </Rectangle.Fill>
-                                    </Rectangle>
-                                    <StackPanel VerticalAlignment="Bottom"
-                                                Margin="14,0,14,14">
-                                        <TextBlock Text="{Binding MetadataMatchStatusText}"
-                                                   FontSize="11"
-                                                   Foreground="#DDEEE8"
-                                                   TextTrimming="CharacterEllipsis"
-                                                   Margin="0,0,0,3" />
-                                        <TextBlock Text="{Binding Game.Name}"
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="210" />
+                                        <RowDefinition Height="*" />
+                                    </Grid.RowDefinitions>
+
+                                    <Grid>
+                                        <TextBlock Text="封面"
+                                                   Foreground="{DynamicResource MutedTextBrush}"
                                                    FontSize="16"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="White"
-                                                   TextTrimming="CharacterEllipsis" />
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center" />
+                                        <Image Source="{Binding Game.CoverImagePath}"
+                                               Stretch="UniformToFill" />
+                                        <Rectangle VerticalAlignment="Bottom"
+                                                   Height="88">
+                                            <Rectangle.Fill>
+                                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                    <GradientStop Color="#00000000" Offset="0" />
+                                                    <GradientStop Color="#AA111814" Offset="1" />
+                                                </LinearGradientBrush>
+                                            </Rectangle.Fill>
+                                        </Rectangle>
+                                        <StackPanel VerticalAlignment="Bottom"
+                                                    Margin="14,0,14,14">
+                                            <TextBlock Text="{Binding MetadataMatchStatusText}"
+                                                       FontSize="11"
+                                                       Foreground="#DDEEE8"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       Margin="0,0,0,3" />
+                                            <TextBlock Text="{Binding Game.Name}"
+                                                       FontSize="16"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="White"
+                                                       TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <StackPanel Grid.Row="1"
+                                                Margin="10,8,10,10">
+                                        <ComboBox ItemsSource="{Binding MetadataMatchCandidates}"
+                                                  SelectedItem="{Binding SelectedMetadataMatchResult, Mode=TwoWay}"
+                                                  DisplayMemberPath="DisplayName"
+                                                  Style="{StaticResource ModernComboBoxStyle}"
+                                                  Height="32" />
+                                        <TextBlock Text="{Binding MetadataMatchResult.AuxiliaryInfo}"
+                                                   Style="{StaticResource MutedTextStyle}"
+                                                   FontSize="11"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Margin="2,5,2,0" />
+                                        <Grid Margin="0,6,0,0">
+                                            <TextBlock Text="{Binding MetadataMatchResult.CompactSummaryPreview}"
+                                                       Style="{StaticResource MutedTextStyle}"
+                                                       FontSize="11"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       VerticalAlignment="Center"
+                                                       Margin="2,0,70,0" />
+                                            <Button Content="重试"
+                                                    Command="{Binding DataContext.RetryMetadataMatchCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"
+                                                    Style="{StaticResource SecondaryButtonStyle}"
+                                                    HorizontalAlignment="Right"
+                                                    Width="62"
+                                                    Height="28" />
+                                        </Grid>
                                     </StackPanel>
                                 </Grid>
                             </Border>

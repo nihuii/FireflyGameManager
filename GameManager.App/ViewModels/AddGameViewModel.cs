@@ -39,7 +39,7 @@ public sealed class AddGameViewModel : ViewModelBase, IDisposable
     private bool importMetadataDeveloper;
     private bool importMetadataPublisher;
     private bool importMetadataTags;
-    private bool usedSearchResultMetadataPreview;
+    private string metadataPreviewStatusText = string.Empty;
 
     public AddGameViewModel(IFilePickerService filePickerService, Action<AddGameRequest> save, Action cancel)
         : this(filePickerService, save, cancel, null, "保存")
@@ -510,20 +510,37 @@ public sealed class AddGameViewModel : ViewModelBase, IDisposable
         var cancellation = BeginMetadataRequest("正在读取条目详情...");
         try
         {
-            var metadata = await metadataProvider.GetDetailsAsync(SelectedMetadataResult.SubjectId, cancellation.Token);
-            if (metadata is null)
+            var lookup = await metadataProvider.LookupDetailsAsync(
+                SelectedMetadataResult.SubjectId,
+                SelectedMetadataResult.DisplayName,
+                cancellation.Token);
+            var metadata = lookup.Metadata;
+            if (metadata is null && lookup.Status == GameMetadataLookupStatus.NotFound)
             {
                 metadata = CreateMetadataPreviewFromSearchResult(SelectedMetadataResult);
-                usedSearchResultMetadataPreview = true;
+                metadataPreviewStatusText = "未能读取完整资料，已使用搜索结果生成部分资料预览";
             }
             if (metadata is null)
             {
-                MetadataStatusText = "未能读取该条目的完整资料";
+                MetadataStatusText = lookup.Status == GameMetadataLookupStatus.AccountReconnectRequired
+                    ? "Bangumi 账号需要重新连接，暂时无法读取该条目"
+                    : "在线条目已删除，或搜索与详情均不存在";
                 return;
             }
 
             MetadataPreview = metadata;
-            MetadataStatusText = "已读取完整资料，请确认要导入的字段";
+            if (string.IsNullOrWhiteSpace(metadataPreviewStatusText))
+            {
+                metadataPreviewStatusText = lookup.Status switch
+                {
+                    GameMetadataLookupStatus.Partial => "已读取部分资料，请确认要导入的字段",
+                    GameMetadataLookupStatus.AccountReconnectRequired when metadata.IsPartial =>
+                        "已读取部分资料；Bangumi 账号需要重新连接，重连后可继续补齐字段",
+                    GameMetadataLookupStatus.AccountReconnectRequired =>
+                        "已读取当前可用资料；Bangumi 账号需要重新连接，部分字段可能缺失",
+                    _ => "已读取完整资料，请确认要导入的字段"
+                };
+            }
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
         {
@@ -592,9 +609,10 @@ public sealed class AddGameViewModel : ViewModelBase, IDisposable
             ExternalMetadata = mergedMetadata;
             GameName = updatedName;
             CoverImagePath = updatedCover;
+            var importKind = MetadataPreview.IsPartial ? "部分资料" : "资料";
             MetadataStatusText = coverImportWarning is null
-                ? "Bangumi 资料已导入，请保存修改。"
-                : $"Bangumi 资料已导入，请保存修改。{coverImportWarning}";
+                ? $"Bangumi {importKind}已导入，请保存修改。"
+                : $"Bangumi {importKind}已导入，请保存修改。{coverImportWarning}";
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
         {
@@ -640,6 +658,7 @@ public sealed class AddGameViewModel : ViewModelBase, IDisposable
             Provider = result.Provider,
             SubjectId = result.SubjectId,
             IsLinked = true,
+            IsPartial = true,
             OriginalName = result.Name,
             LocalizedName = result.LocalizedName,
             Summary = result.SummaryPreview,
@@ -653,7 +672,7 @@ public sealed class AddGameViewModel : ViewModelBase, IDisposable
     private CancellationTokenSource BeginMetadataRequest(string status)
     {
         CancelMetadataRequest();
-        usedSearchResultMetadataPreview = false;
+        metadataPreviewStatusText = string.Empty;
         var cancellation = new CancellationTokenSource();
         metadataRequestCancellation = cancellation;
         IsMetadataBusy = true;
@@ -672,9 +691,9 @@ public sealed class AddGameViewModel : ViewModelBase, IDisposable
         metadataRequestCancellation = null;
         cancellation.Dispose();
         IsMetadataBusy = false;
-        if (usedSearchResultMetadataPreview && MetadataPreview is not null)
+        if (!string.IsNullOrWhiteSpace(metadataPreviewStatusText) && MetadataPreview is not null)
         {
-            MetadataStatusText = "未能读取完整资料，已使用搜索结果生成可导入预览";
+            MetadataStatusText = metadataPreviewStatusText;
         }
     }
 

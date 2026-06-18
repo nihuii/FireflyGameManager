@@ -48,7 +48,7 @@ public partial class MainWindow : Window
             gameLibraryService.GetPlaySessions);
         var bangumiApiClient = new BangumiApiClient();
         var bangumiAccountStore = new JsonBangumiAccountStore(AppPaths.BangumiAccountPath);
-        var metadataProvider = new BangumiGameMetadataProvider(bangumiApiClient);
+        var metadataProvider = new BangumiGameMetadataProvider(bangumiApiClient, bangumiAccountStore);
         viewModel = new MainWindowViewModel(
             gameLibraryService,
             new WpfFilePickerService(),

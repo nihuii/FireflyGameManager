@@ -171,7 +171,7 @@ public sealed class WebDavFullSyncService : IWebDavFullSyncService
                     }
 
                     var externalMetadata = library.GetExternalMetadataSnapshot(game.Id);
-                    if (externalMetadata is not null)
+                    if (externalMetadata is not null && ExternalMetadataSyncPolicy.CanUpload(library, game.Id))
                     {
                         var externalUpload = await gameSyncService.UploadExternalMetadataAsync(settings, externalMetadata);
                         if (!externalUpload.Success)
