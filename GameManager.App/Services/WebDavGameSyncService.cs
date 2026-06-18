@@ -78,6 +78,15 @@ public sealed class WebDavGameSyncService : IWebDavGameSyncService
                 game.UpdatedAtUtc.ToUniversalTime() > existingMetadata.UpdatedAtUtc.ToUniversalTime();
 
             await PutJsonAsync(client, settings, [.. gameRoot, "metadata.json"], metadata);
+            if (game.ExternalMetadata is not null)
+            {
+                await PutJsonAsync(
+                    client,
+                    settings,
+                    [.. gameRoot, "external-metadata.json"],
+                    ExternalGameMetadataCloudSnapshot.FromMetadata(game.Id, game.ExternalMetadata, game.UpdatedAtUtc));
+            }
+
             await PutJsonAsync(client, settings, [.. gameRoot, "paths", $"{machineId}.json"], new MachineGamePath
             {
                 MachineId = machineId,
@@ -145,6 +154,51 @@ public sealed class WebDavGameSyncService : IWebDavGameSyncService
         }
 
         return results;
+    }
+
+    public async Task<WebDavGameSyncResult> UploadExternalMetadataAsync(
+        WebDavSettings settings,
+        ExternalGameMetadataCloudSnapshot snapshot)
+    {
+        using var client = createClient();
+        try
+        {
+            if (string.IsNullOrWhiteSpace(snapshot.GameId))
+            {
+                return new WebDavGameSyncResult(false, "外部资料上传失败：游戏 ID 为空");
+            }
+
+            var gameRoot = new[] { "v2", "games", snapshot.GameId };
+            await EnsureDirectoriesAsync(client, settings, gameRoot);
+            await PutJsonAsync(client, settings, [.. gameRoot, "external-metadata.json"], snapshot);
+            return new WebDavGameSyncResult(true, $"{snapshot.GameId} 的外部资料已上传");
+        }
+        catch (Exception ex)
+        {
+            return new WebDavGameSyncResult(false, $"{snapshot.GameId} 的外部资料上传失败：{ex.Message}");
+        }
+    }
+
+    public async Task<ExternalGameMetadataCloudSnapshot?> DownloadExternalMetadataAsync(WebDavSettings settings, string gameId)
+    {
+        if (string.IsNullOrWhiteSpace(gameId))
+        {
+            return null;
+        }
+
+        using var client = createClient();
+        var snapshot = await GetJsonAsync<ExternalGameMetadataCloudSnapshot>(
+            client,
+            settings,
+            ["v2", "games", gameId, "external-metadata.json"]);
+        if (snapshot is null)
+        {
+            return null;
+        }
+
+        return string.IsNullOrWhiteSpace(snapshot.GameId)
+            ? snapshot with { GameId = gameId }
+            : snapshot;
     }
 
     public async Task<IReadOnlyList<PlaySession>> DownloadPlaySessionsAsync(WebDavSettings settings, GameCloudMetadata metadata)

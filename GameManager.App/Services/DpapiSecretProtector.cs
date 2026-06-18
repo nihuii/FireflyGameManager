@@ -5,7 +5,12 @@ namespace GameManager.App.Services;
 
 public sealed class DpapiSecretProtector : ISecretProtector
 {
-    private static readonly byte[] Entropy = Encoding.UTF8.GetBytes("FireflyGameManager.WebDav.v2");
+    private readonly byte[] entropy;
+
+    public DpapiSecretProtector(string purpose = "FireflyGameManager.WebDav.v2")
+    {
+        entropy = Encoding.UTF8.GetBytes(purpose);
+    }
 
     public string Protect(string plaintext)
     {
@@ -15,7 +20,7 @@ public sealed class DpapiSecretProtector : ISecretProtector
         }
 
         var bytes = Encoding.UTF8.GetBytes(plaintext);
-        return Convert.ToBase64String(ProtectedData.Protect(bytes, Entropy, DataProtectionScope.CurrentUser));
+        return Convert.ToBase64String(ProtectedData.Protect(bytes, entropy, DataProtectionScope.CurrentUser));
     }
 
     public string Unprotect(string protectedValue)
@@ -26,6 +31,6 @@ public sealed class DpapiSecretProtector : ISecretProtector
         }
 
         var bytes = Convert.FromBase64String(protectedValue);
-        return Encoding.UTF8.GetString(ProtectedData.Unprotect(bytes, Entropy, DataProtectionScope.CurrentUser));
+        return Encoding.UTF8.GetString(ProtectedData.Unprotect(bytes, entropy, DataProtectionScope.CurrentUser));
     }
 }

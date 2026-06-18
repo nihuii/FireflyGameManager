@@ -25,6 +25,10 @@ public sealed class MainWindowViewModel : ViewModelBase
     private readonly ISaveSyncCoordinator saveSyncCoordinator;
     private readonly ICoverCacheService coverCacheService;
     private readonly ISyncLogService syncLogService;
+    private readonly IBangumiApiClient bangumiApiClient;
+    private readonly IBangumiAccountStore bangumiAccountStore;
+    private readonly IGameMetadataProvider metadataProvider;
+    private readonly IRemoteImageCacheService remoteImageCacheService;
     private object currentViewModel;
     private string pageTitle = "游戏库";
     private bool showTopActions = true;
@@ -141,7 +145,11 @@ public sealed class MainWindowViewModel : ViewModelBase
         IGameSessionPresentationService presentationService,
         ISaveSyncCoordinator? saveSyncCoordinator = null,
         ICoverCacheService? coverCacheService = null,
-        ISyncLogService? syncLogService = null)
+        ISyncLogService? syncLogService = null,
+        IBangumiApiClient? bangumiApiClient = null,
+        IBangumiAccountStore? bangumiAccountStore = null,
+        IGameMetadataProvider? metadataProvider = null,
+        IRemoteImageCacheService? remoteImageCacheService = null)
     {
         this.gameLibraryService = gameLibraryService;
         this.filePickerService = filePickerService;
@@ -159,6 +167,10 @@ public sealed class MainWindowViewModel : ViewModelBase
         this.saveSyncCoordinator = saveSyncCoordinator ?? new NoopSaveSyncCoordinator();
         this.coverCacheService = coverCacheService ?? new NoopCoverCacheService();
         this.syncLogService = syncLogService ?? new InMemorySyncLogService();
+        this.bangumiApiClient = bangumiApiClient ?? new BangumiApiClient();
+        this.bangumiAccountStore = bangumiAccountStore ?? new JsonBangumiAccountStore(AppPaths.BangumiAccountPath);
+        this.metadataProvider = metadataProvider ?? new BangumiGameMetadataProvider(this.bangumiApiClient);
+        this.remoteImageCacheService = remoteImageCacheService ?? new RemoteImageCacheService(AppPaths.MetadataCacheDirectory);
         Library = new GameLibraryViewModel(gameLibraryService.GetGames(), ShowGameDetail, DeleteGame, PinGame, ShowEditGame);
         currentViewModel = Library;
         ShowAddGameCommand = new RelayCommand(_ => ShowAddGame());
@@ -177,7 +189,20 @@ public sealed class MainWindowViewModel : ViewModelBase
     public object CurrentViewModel
     {
         get => currentViewModel;
-        private set => SetProperty(ref currentViewModel, value);
+        private set
+        {
+            if (ReferenceEquals(currentViewModel, value))
+            {
+                return;
+            }
+
+            if (currentViewModel is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+
+            SetProperty(ref currentViewModel, value);
+        }
     }
 
     public string PageTitle
@@ -247,7 +272,14 @@ public sealed class MainWindowViewModel : ViewModelBase
         SelectNavigation(AppPage.Library);
         ShowTopActions = false;
         PageTitle = language == AppLanguage.English ? "Add game" : "添加游戏";
-        CurrentViewModel = new AddGameViewModel(filePickerService, SaveGame, ShowLibrary);
+        CurrentViewModel = new AddGameViewModel(
+            filePickerService,
+            SaveGame,
+            ShowLibrary,
+            null,
+            "保存",
+            metadataProvider,
+            remoteImageCacheService);
     }
 
     private void ShowManageLibrary()
@@ -255,7 +287,13 @@ public sealed class MainWindowViewModel : ViewModelBase
         SelectNavigation(AppPage.Library);
         ShowTopActions = false;
         PageTitle = language == AppLanguage.English ? "Manage library" : "管理游戏库";
-        CurrentViewModel = new ManageGameLibraryViewModel(Library.Games, DeleteGames, ShowLibrary);
+        CurrentViewModel = new ManageGameLibraryViewModel(
+            Library.Games,
+            DeleteGames,
+            ShowLibrary,
+            gameLibraryService,
+            metadataProvider,
+            UpdateDetailedGame);
     }
 
     private void ShowSync()
@@ -291,7 +329,9 @@ public sealed class MainWindowViewModel : ViewModelBase
             dataMaintenanceService,
             () => Library.Games.Select(game => game.Id).ToList(),
             ReloadLibrary,
-            webDavSettingsStore);
+            webDavSettingsStore,
+            bangumiAccountStore,
+            bangumiApiClient);
         SaveLastPage(AppPage.Settings);
     }
 
@@ -304,7 +344,7 @@ public sealed class MainWindowViewModel : ViewModelBase
             game,
             gameLauncher,
             RecordLaunchResult,
-            Library.ReplaceGame,
+            UpdateDetailedGame,
             ShowLibrary,
             saveBackupService,
             filePickerService,
@@ -312,7 +352,12 @@ public sealed class MainWindowViewModel : ViewModelBase
             presentationService,
             saveSyncCoordinator,
             ShowEditGame,
-            OpenDirectory);
+            OpenDirectory,
+            gameLibraryService,
+            metadataProvider,
+            bangumiAccountStore,
+            bangumiApiClient,
+            remoteImageCacheService);
     }
 
     private void ShowEditGame(Game game)
@@ -330,13 +375,16 @@ public sealed class MainWindowViewModel : ViewModelBase
             game.RunAsAdministrator,
             game.WorkingDirectory,
             game.MonitorProcessName,
-            game.SyncEnabled);
+            game.SyncEnabled,
+            game.ExternalMetadata);
         CurrentViewModel = new AddGameViewModel(
             filePickerService,
             request => UpdateGame(game.Id, request),
             ShowLibrary,
             initialValues,
-            "保存修改");
+            "保存修改",
+            metadataProvider,
+            remoteImageCacheService);
     }
 
     private void SaveGame(AddGameRequest request)
@@ -359,7 +407,8 @@ public sealed class MainWindowViewModel : ViewModelBase
             request.RunAsAdministrator,
             request.WorkingDirectory,
             request.MonitorProcessName,
-            request.SyncEnabled));
+            request.SyncEnabled,
+            request.ExternalMetadata));
         game = CacheCover(game);
         Library.ReplaceGame(game);
         ShowLibrary();
@@ -392,6 +441,13 @@ public sealed class MainWindowViewModel : ViewModelBase
     private Game RecordLaunchResult(Game game, LaunchResult result)
     {
         return gameLibraryService.RecordLaunchResult(game.Id, result);
+    }
+
+    private void UpdateDetailedGame(Game game)
+    {
+        var cached = CacheCover(game);
+        Library.ReplaceGame(cached);
+        PageTitle = cached.Name;
     }
 
     private void ApplyAppearance(AppearanceSettings settings)
@@ -505,6 +561,7 @@ public sealed class MainWindowViewModel : ViewModelBase
             game.RunAsAdministrator,
             game.WorkingDirectory,
             game.MonitorProcessName,
-            game.SyncEnabled));
+            game.SyncEnabled,
+            game.ExternalMetadata));
     }
 }

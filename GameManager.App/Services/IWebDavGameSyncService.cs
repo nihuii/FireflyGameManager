@@ -16,6 +16,12 @@ public interface IWebDavGameSyncService
 
     Task<IReadOnlyList<GameCloudMetadata>> DownloadGameMetadataAsync(WebDavSettings settings);
 
+    Task<WebDavGameSyncResult> UploadExternalMetadataAsync(
+        WebDavSettings settings,
+        ExternalGameMetadataCloudSnapshot snapshot);
+
+    Task<ExternalGameMetadataCloudSnapshot?> DownloadExternalMetadataAsync(WebDavSettings settings, string gameId);
+
     Task<IReadOnlyList<PlaySession>> DownloadPlaySessionsAsync(WebDavSettings settings, GameCloudMetadata metadata);
 
     Task<MachineGamePath?> DownloadMachinePathAsync(WebDavSettings settings, string gameId, string machineId);

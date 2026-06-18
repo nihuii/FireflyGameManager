@@ -102,6 +102,12 @@ public sealed class WebDavFullSyncService : IWebDavFullSyncService
                     }
 
                     library.MergePlaySessions(await gameSyncService.DownloadPlaySessionsAsync(settings, metadata));
+                    var externalMetadata = await gameSyncService.DownloadExternalMetadataAsync(settings, metadata.Id);
+                    if (externalMetadata is not null)
+                    {
+                        library.ApplyCloudExternalMetadata(externalMetadata);
+                    }
+
                     localBeforeModernMerge.TryGetValue(metadata.Id, out var localBefore);
                     if (CloudCoverMergePolicy.ShouldApply(metadata, localBefore))
                     {
@@ -162,6 +168,16 @@ public sealed class WebDavFullSyncService : IWebDavFullSyncService
                     if (!uploadResult.Success)
                     {
                         return Failure(uploadResult.Message);
+                    }
+
+                    var externalMetadata = library.GetExternalMetadataSnapshot(game.Id);
+                    if (externalMetadata is not null)
+                    {
+                        var externalUpload = await gameSyncService.UploadExternalMetadataAsync(settings, externalMetadata);
+                        if (!externalUpload.Success)
+                        {
+                            return Failure(externalUpload.Message);
+                        }
                     }
                 }
             }

@@ -21,11 +21,16 @@ public sealed class AppearanceSettingsViewModel : ViewModelBase
     private readonly Func<IReadOnlyList<string>> validGameIds;
     private readonly Action reloadLibrary;
     private readonly IWebDavSettingsStore? webDavSettingsStore;
+    private readonly IBangumiAccountStore? bangumiAccountStore;
+    private readonly IBangumiApiClient? bangumiApiClient;
     private AppSettings appSettings;
     private string wallpaperPath;
     private bool isTransparentUi;
     private string statusText = "设置会自动保存";
     private string selectedSection = SettingsOverviewSection;
+    private string bangumiAccessToken = string.Empty;
+    private BangumiAccount? bangumiAccount;
+    private string bangumiStatusText = "可使用 Bangumi Access Token 登录";
 
     private const string SettingsOverviewSection = "Overview";
     private const string GeneralSection = "General";
@@ -33,6 +38,7 @@ public sealed class AppearanceSettingsViewModel : ViewModelBase
     private const string LibrarySection = "Library";
     private const string AppearanceSection = "Appearance";
     private const string DataSection = "Data";
+    private const string AccountsSection = "Accounts";
 
     public AppearanceSettingsViewModel(
         IFilePickerService filePickerService,
@@ -70,7 +76,9 @@ public sealed class AppearanceSettingsViewModel : ViewModelBase
         IDataMaintenanceService dataMaintenanceService,
         Func<IReadOnlyList<string>> validGameIds,
         Action reloadLibrary,
-        IWebDavSettingsStore? webDavSettingsStore = null)
+        IWebDavSettingsStore? webDavSettingsStore = null,
+        IBangumiAccountStore? bangumiAccountStore = null,
+        IBangumiApiClient? bangumiApiClient = null)
     {
         this.filePickerService = filePickerService;
         this.appearanceSettingsStore = appearanceSettingsStore;
@@ -85,6 +93,13 @@ public sealed class AppearanceSettingsViewModel : ViewModelBase
         this.validGameIds = validGameIds;
         this.reloadLibrary = reloadLibrary;
         this.webDavSettingsStore = webDavSettingsStore;
+        this.bangumiAccountStore = bangumiAccountStore;
+        this.bangumiApiClient = bangumiApiClient;
+        bangumiAccount = bangumiAccountStore?.Load();
+        if (bangumiAccount?.RequiresReconnect == true)
+        {
+            bangumiStatusText = "Bangumi 授权已失效，请粘贴新的 Access Token 重新连接";
+        }
 
         var appearanceSettings = appearanceSettingsStore.Load();
         wallpaperPath = appearanceSettings.WallpaperPath;
@@ -104,6 +119,8 @@ public sealed class AppearanceSettingsViewModel : ViewModelBase
         ShowSectionCommand = new RelayCommand(parameter => ShowSection(parameter as string));
         ShowOverviewCommand = new RelayCommand(_ => ShowSection(SettingsOverviewSection));
         BackCommand = new RelayCommand(_ => goBack());
+        ConnectBangumiCommand = new AsyncRelayCommand(_ => ConnectBangumiAsync());
+        DisconnectBangumiCommand = new RelayCommand(_ => DisconnectBangumi(), _ => IsBangumiConnected);
     }
 
     public IReadOnlyList<SettingOption<AppCloseBehavior>> CloseBehaviorOptions { get; } =
@@ -311,6 +328,36 @@ public sealed class AppearanceSettingsViewModel : ViewModelBase
 
     public bool IsDataSectionSelected => selectedSection == DataSection;
 
+    public bool IsAccountsSectionSelected => selectedSection == AccountsSection;
+
+    public string BangumiAccessToken
+    {
+        get => bangumiAccessToken;
+        set => SetProperty(ref bangumiAccessToken, value);
+    }
+
+    public bool IsBangumiConnected => bangumiAccount is not null;
+
+    public string BangumiAccountDisplay => bangumiAccount is null
+        ? "尚未连接 Bangumi"
+        : bangumiAccount.RequiresReconnect
+            ? $"需要重新连接：{bangumiAccount.Nickname} (@{bangumiAccount.Username})"
+            : $"已连接：{bangumiAccount.Nickname} (@{bangumiAccount.Username})";
+
+    public bool RequiresBangumiReconnect => bangumiAccount?.RequiresReconnect == true;
+
+    public string BangumiAvatarUrl => bangumiAccount?.AvatarUrl ?? string.Empty;
+
+    public string BangumiVerifiedText => bangumiAccount is null
+        ? string.Empty
+        : $"最近验证：{bangumiAccount.VerifiedAtUtc.ToLocalTime():yyyy-MM-dd HH:mm}";
+
+    public string BangumiStatusText
+    {
+        get => bangumiStatusText;
+        private set => SetProperty(ref bangumiStatusText, value);
+    }
+
     public ICommand SelectWallpaperCommand { get; }
     public ICommand ClearWallpaperCommand { get; }
     public ICommand BrowseScanDirectoryCommand { get; }
@@ -324,6 +371,8 @@ public sealed class AppearanceSettingsViewModel : ViewModelBase
     public ICommand ShowSectionCommand { get; }
     public ICommand ShowOverviewCommand { get; }
     public ICommand BackCommand { get; }
+    public ICommand ConnectBangumiCommand { get; }
+    public ICommand DisconnectBangumiCommand { get; }
 
     private void ShowSection(string? section)
     {
@@ -334,6 +383,7 @@ public sealed class AppearanceSettingsViewModel : ViewModelBase
             LibrarySection => LibrarySection,
             AppearanceSection => AppearanceSection,
             DataSection => DataSection,
+            AccountsSection => AccountsSection,
             _ => SettingsOverviewSection
         };
 
@@ -349,6 +399,7 @@ public sealed class AppearanceSettingsViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsLibrarySectionSelected));
         OnPropertyChanged(nameof(IsAppearanceSectionSelected));
         OnPropertyChanged(nameof(IsDataSectionSelected));
+        OnPropertyChanged(nameof(IsAccountsSectionSelected));
     }
 
     private void SelectWallpaper()
@@ -425,6 +476,9 @@ public sealed class AppearanceSettingsViewModel : ViewModelBase
         appSettingsStore.Save(appSettings);
         autoStartService.SetEnabled(false);
         webDavSettingsStore?.Save(WebDavSettings.Default);
+        bangumiAccountStore?.Clear();
+        bangumiAccount = null;
+        RaiseBangumiAccountProperties();
         var appearance = AppearanceSettings.Default;
         appearanceSettingsStore.Save(appearance);
         WallpaperPath = appearance.WallpaperPath;
@@ -505,5 +559,55 @@ public sealed class AppearanceSettingsViewModel : ViewModelBase
         OnPropertyChanged(nameof(CardSize));
         OnPropertyChanged(nameof(ShowPlayTimeOnCards));
         OnPropertyChanged(nameof(ScanDirectory));
+    }
+
+    private async Task ConnectBangumiAsync()
+    {
+        if (bangumiApiClient is null || bangumiAccountStore is null)
+        {
+            BangumiStatusText = "当前未配置 Bangumi 服务";
+            return;
+        }
+
+        var token = string.IsNullOrWhiteSpace(BangumiAccessToken)
+            ? bangumiAccount?.AccessToken ?? string.Empty
+            : BangumiAccessToken.Trim();
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            BangumiStatusText = "请输入 Bangumi Access Token";
+            return;
+        }
+
+        try
+        {
+            BangumiStatusText = "正在验证 Bangumi 账号...";
+            bangumiAccount = await bangumiApiClient.GetCurrentUserAsync(token);
+            bangumiAccountStore.Save(bangumiAccount);
+            BangumiAccessToken = string.Empty;
+            BangumiStatusText = "Bangumi 账号连接成功";
+            RaiseBangumiAccountProperties();
+        }
+        catch (Exception ex)
+        {
+            BangumiStatusText = $"连接失败：{ex.Message}";
+        }
+    }
+
+    private void DisconnectBangumi()
+    {
+        bangumiAccountStore?.Clear();
+        bangumiAccount = null;
+        BangumiStatusText = "已断开 Bangumi 账号连接";
+        RaiseBangumiAccountProperties();
+    }
+
+    private void RaiseBangumiAccountProperties()
+    {
+        OnPropertyChanged(nameof(IsBangumiConnected));
+        OnPropertyChanged(nameof(BangumiAccountDisplay));
+        OnPropertyChanged(nameof(RequiresBangumiReconnect));
+        OnPropertyChanged(nameof(BangumiAvatarUrl));
+        OnPropertyChanged(nameof(BangumiVerifiedText));
+        ((RelayCommand)DisconnectBangumiCommand).RaiseCanExecuteChanged();
     }
 }

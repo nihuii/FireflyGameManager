@@ -2,6 +2,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <Style TargetType="ScrollBar"
                BasedOn="{StaticResource ModernScrollBarStyle}" />
     </UserControl.Resources>
@@ -26,6 +27,7 @@
                         <ColumnDefinition Width="132" />
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
@@ -166,6 +168,155 @@
                                       Style="{StaticResource ToggleSwitchStyle}"
                                       HorizontalAlignment="Right" />
                         </Grid>
+                    </Border>
+
+                    <Border Grid.Row="11"
+                            Grid.ColumnSpan="2"
+                            Style="{StaticResource SettingsOptionRowStyle}"
+                            Margin="0,16,0,0">
+                        <StackPanel>
+                            <TextBlock Text="Bangumi 游戏资料"
+                                       Foreground="{DynamicResource TextBrush}"
+                                       FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding ExternalMetadataDisplay}"
+                                       Style="{StaticResource MutedTextStyle}"
+                                       Margin="0,4,0,12" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="104" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox Text="{Binding MetadataSearchQuery, UpdateSourceTrigger=PropertyChanged}"
+                                         Style="{StaticResource TextBoxStyle}"
+                                         ToolTip="输入游戏名称后从 Bangumi 搜索" />
+                                <Button Grid.Column="1"
+                                        Content="搜索"
+                                        Command="{Binding SearchMetadataCommand}"
+                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        Margin="10,0,0,0" />
+                            </Grid>
+                            <ComboBox ItemsSource="{Binding MetadataSearchResults}"
+                                      SelectedItem="{Binding SelectedMetadataResult}"
+                                      Style="{StaticResource ModernComboBoxStyle}"
+                                      Height="76"
+                                      Margin="0,10,0,0">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Height="70">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="48" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border Width="42"
+                                                    Height="60"
+                                                    CornerRadius="4"
+                                                    Background="{DynamicResource SurfaceBrush}"
+                                                    ClipToBounds="True"
+                                                    VerticalAlignment="Center">
+                                                <Image Source="{Binding ImageUrl}"
+                                                       Stretch="UniformToFill" />
+                                            </Border>
+                                            <StackPanel Grid.Column="1"
+                                                        Margin="10,0,0,0"
+                                                        VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding DisplayName}"
+                                                           Foreground="{DynamicResource TextBrush}"
+                                                           FontWeight="SemiBold" />
+                                                <TextBlock Foreground="{DynamicResource MutedTextBrush}"
+                                                           FontSize="11"
+                                                           Text="{Binding AuxiliaryInfo}"
+                                                           TextTrimming="CharacterEllipsis">
+                                                </TextBlock>
+                                                <TextBlock Text="{Binding CompactSummaryPreview}"
+                                                           Foreground="{DynamicResource MutedTextBrush}"
+                                                           FontSize="11"
+                                                           TextWrapping="NoWrap"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           MaxHeight="16"
+                                                           Margin="0,3,0,0" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                            <WrapPanel Margin="0,10,0,0">
+                                <Button Content="查看详情"
+                                        Command="{Binding PreviewMetadataCommand}"
+                                        Style="{StaticResource PrimaryButtonStyle}"
+                                        Margin="0,0,10,0" />
+                                <Button Content="取消请求"
+                                        Command="{Binding CancelMetadataRequestCommand}"
+                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        Margin="0,0,10,0" />
+                                <Button Content="解除在线关联"
+                                        Command="{Binding UnlinkMetadataCommand}"
+                                        Style="{StaticResource SecondaryButtonStyle}" />
+                            </WrapPanel>
+
+                            <Border BorderBrush="{DynamicResource LineBrush}"
+                                    BorderThickness="0,1,0,0"
+                                    Padding="0,12,0,0"
+                                    Margin="0,12,0,0"
+                                    Visibility="{Binding HasMetadataPreview, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding MetadataPreviewTitle}"
+                                               Foreground="{DynamicResource TextBrush}"
+                                               FontWeight="SemiBold"
+                                               FontSize="15" />
+                                    <TextBlock Text="{Binding MetadataPreviewInfo}"
+                                               Style="{StaticResource MutedTextStyle}"
+                                               TextWrapping="Wrap"
+                                               Margin="0,4,0,0" />
+                                    <TextBlock Text="{Binding MetadataPreviewSummary}"
+                                               Foreground="{DynamicResource TextBrush}"
+                                               TextWrapping="Wrap"
+                                               MaxHeight="96"
+                                               Margin="0,10,0,0" />
+                                    <TextBlock Text="{Binding MetadataPreviewTags}"
+                                               Style="{StaticResource MutedTextStyle}"
+                                               TextWrapping="Wrap"
+                                               Margin="0,8,0,0" />
+                                    <WrapPanel Margin="0,12,0,0">
+                                        <CheckBox Content="名称"
+                                                  IsChecked="{Binding ImportMetadataName}"
+                                                  Foreground="{DynamicResource TextBrush}"
+                                                  Margin="0,0,16,8" />
+                                        <CheckBox Content="封面"
+                                                  IsChecked="{Binding ImportMetadataCover}"
+                                                  Foreground="{DynamicResource TextBrush}"
+                                                  Margin="0,0,16,8" />
+                                        <CheckBox Content="简介"
+                                                  IsChecked="{Binding ImportMetadataSummary}"
+                                                  Foreground="{DynamicResource TextBrush}"
+                                                  Margin="0,0,16,8" />
+                                        <CheckBox Content="发行日期"
+                                                  IsChecked="{Binding ImportMetadataReleaseDate}"
+                                                  Foreground="{DynamicResource TextBrush}"
+                                                  Margin="0,0,16,8" />
+                                        <CheckBox Content="开发商"
+                                                  IsChecked="{Binding ImportMetadataDeveloper}"
+                                                  Foreground="{DynamicResource TextBrush}"
+                                                  Margin="0,0,16,8" />
+                                        <CheckBox Content="发行商"
+                                                  IsChecked="{Binding ImportMetadataPublisher}"
+                                                  Foreground="{DynamicResource TextBrush}"
+                                                  Margin="0,0,16,8" />
+                                        <CheckBox Content="标签"
+                                                  IsChecked="{Binding ImportMetadataTags}"
+                                                  Foreground="{DynamicResource TextBrush}"
+                                                  Margin="0,0,16,8" />
+                                    </WrapPanel>
+                                    <Button Content="导入所选字段"
+                                            Command="{Binding ApplyMetadataCommand}"
+                                            Style="{StaticResource PrimaryButtonStyle}"
+                                            HorizontalAlignment="Left"
+                                            Margin="0,6,0,0" />
+                                </StackPanel>
+                            </Border>
+                            <TextBlock Text="{Binding MetadataStatusText}"
+                                       Style="{StaticResource MutedTextStyle}"
+                                       Margin="0,10,0,0" />
+                        </StackPanel>
                     </Border>
                 </Grid>
             </ScrollViewer>

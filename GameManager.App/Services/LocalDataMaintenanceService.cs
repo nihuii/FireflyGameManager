@@ -38,7 +38,19 @@ public sealed class LocalDataMaintenanceService : IDataMaintenanceService
             File.Delete(destinationZipPath);
         }
 
-        ZipFile.CreateFromDirectory(DataDirectory, destinationZipPath, CompressionLevel.Optimal, false);
+        var destinationFullPath = Path.GetFullPath(destinationZipPath);
+        using var archive = ZipFile.Open(destinationZipPath, ZipArchiveMode.Create);
+        foreach (var filePath in Directory.EnumerateFiles(DataDirectory, "*", SearchOption.AllDirectories))
+        {
+            if (string.Equals(Path.GetFullPath(filePath), destinationFullPath, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(Path.GetFileName(filePath), "bangumi-account.json", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var entryName = Path.GetRelativePath(DataDirectory, filePath);
+            archive.CreateEntryFromFile(filePath, entryName, CompressionLevel.Optimal);
+        }
     }
 
     public void Import(string sourceZipPath)

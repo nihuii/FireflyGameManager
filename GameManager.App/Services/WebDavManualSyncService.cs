@@ -5,6 +5,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Xml.Linq;
 using GameManager.App.Models;
+using Microsoft.Data.Sqlite;
 
 namespace GameManager.App.Services;
 
@@ -33,7 +34,7 @@ public sealed class WebDavManualSyncService : IWebDavManualSyncService
         try
         {
             await EnsureDirectoriesAsync(client, settings, ["metadata"]);
-            var uploaded = await PutFileAsync(client, settings, databasePath, ["metadata", "app.db"]);
+            var uploaded = await PutSanitizedUserDatabaseAsync(client, settings, databasePath);
             return uploaded
                 ? new WebDavUploadResult(true, "用户信息上传完成：1 个文件", 1, 0)
                 : new WebDavUploadResult(false, "用户信息上传失败", 0, 1);
@@ -125,6 +126,7 @@ public sealed class WebDavManualSyncService : IWebDavManualSyncService
                 }
 
                 File.Move(temporaryPath, databasePath, true);
+                RestoreLocalOnlyMetadata(databasePath + ".bak", databasePath);
             }
             finally
             {
@@ -296,6 +298,172 @@ public sealed class WebDavManualSyncService : IWebDavManualSyncService
         }
 
         return new WebDavRemoteEntry(string.Join("/", segments), collection || path.EndsWith("/", StringComparison.Ordinal));
+    }
+
+    private static async Task<bool> PutSanitizedUserDatabaseAsync(
+        HttpClient client,
+        WebDavSettings settings,
+        string databasePath)
+    {
+        var uploadPath = CreateSanitizedUserDatabaseCopy(databasePath) ?? databasePath;
+        try
+        {
+            return await PutFileAsync(client, settings, uploadPath, ["metadata", "app.db"]);
+        }
+        finally
+        {
+            if (!string.Equals(uploadPath, databasePath, StringComparison.OrdinalIgnoreCase))
+            {
+                TryDeleteFile(uploadPath);
+            }
+        }
+    }
+
+    private static string? CreateSanitizedUserDatabaseCopy(string databasePath)
+    {
+        if (!IsSqliteDatabase(databasePath))
+        {
+            return null;
+        }
+
+        var temporaryPath = Path.Combine(Path.GetTempPath(), $"FireflyGameManager-webdav-{Guid.NewGuid():N}.db");
+        try
+        {
+            using var source = new SqliteConnection(new SqliteConnectionStringBuilder
+            {
+                DataSource = databasePath,
+                Pooling = false
+            }.ToString());
+            using var destination = new SqliteConnection(new SqliteConnectionStringBuilder
+            {
+                DataSource = temporaryPath,
+                Pooling = false
+            }.ToString());
+            source.Open();
+            destination.Open();
+            source.BackupDatabase(destination);
+
+            foreach (var tableName in new[] { "bangumi_collection_states", "game_external_metadata", "external_metadata_conflicts" })
+            {
+                using var check = destination.CreateCommand();
+                check.CommandText =
+                    "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = $tableName;";
+                check.Parameters.AddWithValue("$tableName", tableName);
+                if ((long)check.ExecuteScalar()! > 0)
+                {
+                    using var clear = destination.CreateCommand();
+                    clear.CommandText = $"DELETE FROM {tableName};";
+                    clear.ExecuteNonQuery();
+                }
+            }
+
+            return temporaryPath;
+        }
+        catch
+        {
+            TryDeleteFile(temporaryPath);
+            throw new InvalidOperationException("无法创建不含 Bangumi 收藏缓存的安全上传副本。");
+        }
+    }
+
+    private static bool IsSqliteDatabase(string path)
+    {
+        try
+        {
+            Span<byte> header = stackalloc byte[16];
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            return stream.Read(header) == header.Length &&
+                header.SequenceEqual("SQLite format 3\0"u8);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static void RestoreLocalOnlyMetadata(string backupPath, string databasePath)
+    {
+        if (!File.Exists(backupPath))
+        {
+            return;
+        }
+
+        try
+        {
+            using var connection = new SqliteConnection(new SqliteConnectionStringBuilder
+            {
+                DataSource = databasePath,
+                Pooling = false
+            }.ToString());
+            connection.Open();
+            using (var create = connection.CreateCommand())
+            {
+                create.CommandText =
+                    """
+                    CREATE TABLE IF NOT EXISTS bangumi_collection_states (
+                        game_id TEXT PRIMARY KEY,
+                        subject_id TEXT NOT NULL,
+                        username TEXT NOT NULL,
+                        collection_type TEXT NOT NULL DEFAULT 'None',
+                        rating INTEGER NOT NULL DEFAULT 0,
+                        comment TEXT NOT NULL DEFAULT '',
+                        remote_updated_at TEXT,
+                        last_synced_at TEXT NOT NULL
+                    );
+                    CREATE TABLE IF NOT EXISTS game_external_metadata (
+                        game_id TEXT PRIMARY KEY,
+                        provider TEXT NOT NULL,
+                        subject_id TEXT NOT NULL,
+                        is_linked INTEGER NOT NULL DEFAULT 1,
+                        original_name TEXT NOT NULL DEFAULT '',
+                        localized_name TEXT NOT NULL DEFAULT '',
+                        summary TEXT NOT NULL DEFAULT '',
+                        release_date TEXT NOT NULL DEFAULT '',
+                        developer TEXT NOT NULL DEFAULT '',
+                        publisher TEXT NOT NULL DEFAULT '',
+                        tags_json TEXT NOT NULL DEFAULT '[]',
+                        image_url TEXT NOT NULL DEFAULT '',
+                        subject_url TEXT NOT NULL DEFAULT '',
+                        source_updated_at TEXT NOT NULL,
+                        imported_at TEXT NOT NULL,
+                        updated_at TEXT NOT NULL
+                    );
+                    CREATE TABLE IF NOT EXISTS external_metadata_conflicts (
+                        game_id TEXT PRIMARY KEY,
+                        local_snapshot_json TEXT NOT NULL,
+                        cloud_snapshot_json TEXT NOT NULL,
+                        detected_at TEXT NOT NULL,
+                        reason TEXT NOT NULL DEFAULT ''
+                    );
+                    """;
+                create.ExecuteNonQuery();
+            }
+
+            using (var attach = connection.CreateCommand())
+            {
+                attach.CommandText = "ATTACH DATABASE $backupPath AS local_backup;";
+                attach.Parameters.AddWithValue("$backupPath", backupPath);
+                attach.ExecuteNonQuery();
+            }
+
+            foreach (var tableName in new[] { "bangumi_collection_states", "game_external_metadata", "external_metadata_conflicts" })
+            {
+                using var check = connection.CreateCommand();
+                check.CommandText =
+                    "SELECT COUNT(*) FROM local_backup.sqlite_master WHERE type = 'table' AND name = $tableName;";
+                check.Parameters.AddWithValue("$tableName", tableName);
+                if ((long)check.ExecuteScalar()! > 0)
+                {
+                    using var restore = connection.CreateCommand();
+                    restore.CommandText = $"INSERT OR REPLACE INTO {tableName} SELECT * FROM local_backup.{tableName};";
+                    restore.ExecuteNonQuery();
+                }
+            }
+        }
+        catch
+        {
+            // A legacy or invalid database should still be downloaded successfully.
+        }
     }
 
     private static async Task EnsureDirectoriesAsync(HttpClient client, WebDavSettings settings, IReadOnlyList<string> requestedSegments)

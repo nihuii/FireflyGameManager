@@ -2,8 +2,32 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Grid>
+        <Border HorizontalAlignment="Left"
+                VerticalAlignment="Top"
+                Background="{DynamicResource PanelBrush}"
+                BorderBrush="{DynamicResource LineBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="10">
+            <StackPanel Orientation="Horizontal">
+                <Button Content="匹配未关联资料"
+                        Command="{Binding MatchUnlinkedMetadataCommand}"
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        Width="144"
+                        Margin="0,0,10,0" />
+                <Button Content="应用候选"
+                        Command="{Binding ApplyMatchedMetadataCommand}"
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        Width="104"
+                        Margin="0,0,12,0" />
+                <TextBlock Text="{Binding BatchMetadataStatusText}"
+                           Style="{StaticResource MutedTextStyle}"
+                           VerticalAlignment="Center" />
+            </StackPanel>
+        </Border>
+
         <ScrollViewer VerticalScrollBarVisibility="Auto"
-                      Margin="0,0,0,70">
+                      Margin="0,58,0,70">
             <ItemsControl ItemsSource="{Binding Games}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -48,13 +72,19 @@
                                             </LinearGradientBrush>
                                         </Rectangle.Fill>
                                     </Rectangle>
-                                    <TextBlock Text="{Binding Game.Name}"
-                                               VerticalAlignment="Bottom"
-                                               Margin="14,0,14,15"
-                                               FontSize="16"
-                                               FontWeight="SemiBold"
-                                               Foreground="White"
-                                               TextTrimming="CharacterEllipsis" />
+                                    <StackPanel VerticalAlignment="Bottom"
+                                                Margin="14,0,14,14">
+                                        <TextBlock Text="{Binding MetadataMatchStatusText}"
+                                                   FontSize="11"
+                                                   Foreground="#DDEEE8"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Margin="0,0,0,3" />
+                                        <TextBlock Text="{Binding Game.Name}"
+                                                   FontSize="16"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="White"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
                                 </Grid>
                             </Border>
 

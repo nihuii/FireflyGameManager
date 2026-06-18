@@ -129,6 +129,32 @@
                 </Button>
 
                 <Button Command="{Binding ShowSectionCommand}"
+                        CommandParameter="Accounts"
+                        Style="{StaticResource SettingsSectionButtonStyle}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="账号与数据源"
+                                       Foreground="{DynamicResource TextBrush}"
+                                       FontSize="16"
+                                       FontWeight="SemiBold" />
+                            <TextBlock Text="连接 Bangumi 账号并管理在线资料来源。"
+                                       Style="{StaticResource MutedTextStyle}"
+                                       Margin="0,5,0,0" />
+                        </StackPanel>
+                        <TextBlock Grid.Column="1"
+                                   Text=">"
+                                   Foreground="{DynamicResource MutedTextBrush}"
+                                   FontSize="20"
+                                   VerticalAlignment="Center"
+                                   Margin="18,0,0,0" />
+                    </Grid>
+                </Button>
+
+                <Button Command="{Binding ShowSectionCommand}"
                         CommandParameter="Data"
                         Style="{StaticResource SettingsSectionButtonStyle}">
                     <Grid>
@@ -457,6 +483,72 @@
                                       IsChecked="{Binding IsTransparentUi}"
                                       Style="{StaticResource ToggleSwitchStyle}" />
                         </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <ScrollViewer x:Name="AccountSettingsSection"
+                      Grid.Row="0"
+                      HorizontalContentAlignment="Stretch"
+                      VerticalScrollBarVisibility="Auto"
+                      Visibility="{Binding IsAccountsSectionSelected, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <StackPanel Margin="0,0,12,0">
+                <DockPanel Margin="0,0,0,16">
+                    <Button Content="返回设置"
+                            Command="{Binding ShowOverviewCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Width="96"
+                            DockPanel.Dock="Left"
+                            Margin="0,0,14,0" />
+                    <TextBlock Text="账号与数据源"
+                               Style="{StaticResource SectionTitleStyle}"
+                               Margin="0,7,0,0" />
+                </DockPanel>
+
+                <Border Style="{StaticResource SectionCardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="Bangumi"
+                                   Style="{StaticResource SectionTitleStyle}" />
+                        <Grid Margin="0,-4,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="48" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="40"
+                                    Height="40"
+                                    CornerRadius="8"
+                                    Background="{DynamicResource SurfaceBrush}"
+                                    ClipToBounds="True">
+                                <Image Source="{Binding BangumiAvatarUrl}"
+                                       Stretch="UniformToFill" />
+                            </Border>
+                            <StackPanel Grid.Column="1"
+                                        VerticalAlignment="Center">
+                                <TextBlock Text="{Binding BangumiAccountDisplay}"
+                                           Foreground="{DynamicResource TextBrush}"
+                                           FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding BangumiVerifiedText}"
+                                           Style="{StaticResource MutedTextStyle}"
+                                           Margin="0,3,0,0" />
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock Text="Access Token"
+                                   Style="{StaticResource FormLabelStyle}" />
+                        <PasswordBox PasswordChanged="BangumiAccessTokenBox_PasswordChanged"
+                                     Style="{StaticResource PasswordBoxStyle}" />
+                        <WrapPanel Margin="0,12,0,0">
+                            <Button Content="连接 / 重新验证"
+                                    Command="{Binding ConnectBangumiCommand}"
+                                    Style="{StaticResource PrimaryButtonStyle}"
+                                    Margin="0,0,10,0" />
+                            <Button Content="断开连接"
+                                    Command="{Binding DisconnectBangumiCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}" />
+                        </WrapPanel>
+                        <TextBlock Text="{Binding BangumiStatusText}"
+                                   Style="{StaticResource MutedTextStyle}"
+                                   Margin="0,12,0,0" />
                     </StackPanel>
                 </Border>
             </StackPanel>

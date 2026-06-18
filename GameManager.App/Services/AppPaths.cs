@@ -49,5 +49,9 @@ public static class AppPaths
 
     public static string CoverCacheDirectory => Path.Combine(DataDirectory, "CoverCache");
 
+    public static string MetadataCacheDirectory => Path.Combine(DataDirectory, "MetadataCache");
+
+    public static string BangumiAccountPath => Path.Combine(DataDirectory, "bangumi-account.json");
+
     public static string MachineIdPath => Path.Combine(DataDirectory, "machine-id.txt");
 }

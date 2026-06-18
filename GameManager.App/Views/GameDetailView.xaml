@@ -256,6 +256,199 @@
                 </Border>
 
                 <Border Style="{StaticResource SectionCardStyle}"
+                        Visibility="{Binding HasExternalMetadata, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="游戏资料"
+                                           Style="{StaticResource SectionTitleStyle}"
+                                           Margin="0" />
+                                <TextBlock Text="{Binding ExternalMetadataTitle}"
+                                           Foreground="{DynamicResource TextBrush}"
+                                           FontSize="16"
+                                           FontWeight="SemiBold"
+                                           Margin="0,5,0,0" />
+                            </StackPanel>
+                            <WrapPanel Grid.Column="1"
+                                       HorizontalAlignment="Right"
+                                       Margin="16,0,0,0">
+                                <Button Content="刷新"
+                                        Command="{Binding RefreshExternalMetadataCommand}"
+                                        Style="{StaticResource DetailMiniButtonStyle}"
+                                        Margin="0,0,8,0" />
+                                <Button Content="来源"
+                                        Command="{Binding OpenExternalSourceCommand}"
+                                        Style="{StaticResource DetailMiniButtonStyle}"
+                                        Margin="0,0,8,0" />
+                                <Button Content="解除关联"
+                                        Command="{Binding UnlinkExternalMetadataCommand}"
+                                        Style="{StaticResource DetailDangerMiniButtonStyle}" />
+                            </WrapPanel>
+                        </Grid>
+                        <TextBlock Text="{Binding ExternalMetadataInfo}"
+                                   Style="{StaticResource MutedTextStyle}"
+                                   Margin="0,0,0,10" />
+                        <TextBlock Text="{Binding ExternalMetadataSummaryDisplay}"
+                                   Style="{StaticResource DetailInfoValueStyle}"
+                                   Margin="0,0,0,10" />
+                        <Button Content="{Binding ExternalSummaryToggleText}"
+                                Command="{Binding ToggleExternalSummaryCommand}"
+                                Style="{StaticResource DetailMiniButtonStyle}"
+                                HorizontalAlignment="Left"
+                                Margin="0,-2,0,10"
+                                Visibility="{Binding CanToggleExternalSummary, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                        <TextBlock Text="{Binding ExternalMetadataTags}"
+                                   Style="{StaticResource MutedTextStyle}"
+                                   TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding ExternalMetadataStatusText}"
+                                   Style="{StaticResource MutedTextStyle}"
+                                   Margin="0,8,0,0" />
+
+                        <Border Style="{StaticResource SettingsOptionRowStyle}"
+                                Margin="0,12,0,0"
+                                Visibility="{Binding HasExternalMetadataConflict, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <StackPanel>
+                                <TextBlock Text="{Binding ExternalMetadataConflictText}"
+                                           Foreground="{DynamicResource TextBrush}"
+                                           FontWeight="SemiBold"
+                                           TextWrapping="Wrap" />
+                                <WrapPanel Margin="0,10,0,0">
+                                    <Button Content="保留本机"
+                                            Command="{Binding UseLocalExternalMetadataCommand}"
+                                            Style="{StaticResource DetailMiniButtonStyle}"
+                                            Margin="0,0,8,0" />
+                                    <Button Content="采用云端"
+                                            Command="{Binding UseCloudExternalMetadataCommand}"
+                                            Style="{StaticResource DetailMiniButtonStyle}"
+                                            Margin="0,0,8,0" />
+                                    <Button Content="解除关联"
+                                            Command="{Binding UnlinkConflictingExternalMetadataCommand}"
+                                            Style="{StaticResource DetailDangerMiniButtonStyle}" />
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border BorderBrush="{DynamicResource LineBrush}"
+                                BorderThickness="0,1,0,0"
+                                Padding="0,16,0,0"
+                                Margin="0,16,0,0"
+                                Visibility="{Binding HasMetadataRefreshPreview, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <StackPanel>
+                                <TextBlock Text="确认资料更新"
+                                           Foreground="{DynamicResource TextBrush}"
+                                           FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding MetadataRefreshDifferences}"
+                                           Style="{StaticResource MutedTextStyle}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,4,0,0" />
+                                <WrapPanel Margin="0,10,0,0">
+                                    <CheckBox Content="名称"
+                                              IsChecked="{Binding RefreshImportName}"
+                                              Foreground="{DynamicResource TextBrush}"
+                                              Margin="0,0,16,8" />
+                                    <CheckBox Content="封面"
+                                              IsChecked="{Binding RefreshImportCover}"
+                                              Foreground="{DynamicResource TextBrush}"
+                                              Margin="0,0,16,8" />
+                                    <CheckBox Content="简介"
+                                              IsChecked="{Binding RefreshImportSummary}"
+                                              Foreground="{DynamicResource TextBrush}"
+                                              Margin="0,0,16,8" />
+                                    <CheckBox Content="发行日期"
+                                              IsChecked="{Binding RefreshImportReleaseDate}"
+                                              Foreground="{DynamicResource TextBrush}"
+                                              Margin="0,0,16,8" />
+                                    <CheckBox Content="开发商"
+                                              IsChecked="{Binding RefreshImportDeveloper}"
+                                              Foreground="{DynamicResource TextBrush}"
+                                              Margin="0,0,16,8" />
+                                    <CheckBox Content="发行商"
+                                              IsChecked="{Binding RefreshImportPublisher}"
+                                              Foreground="{DynamicResource TextBrush}"
+                                              Margin="0,0,16,8" />
+                                    <CheckBox Content="标签"
+                                              IsChecked="{Binding RefreshImportTags}"
+                                              Foreground="{DynamicResource TextBrush}"
+                                              Margin="0,0,16,8" />
+                                </WrapPanel>
+                                <WrapPanel Margin="0,4,0,0">
+                                    <Button Content="应用所选字段"
+                                            Command="{Binding ApplyExternalMetadataRefreshCommand}"
+                                            Style="{StaticResource DetailMiniButtonStyle}"
+                                            Margin="0,0,8,0" />
+                                    <Button Content="取消"
+                                            Command="{Binding CancelExternalMetadataRefreshCommand}"
+                                            Style="{StaticResource DetailMiniButtonStyle}" />
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource SettingsOptionRowStyle}"
+                                Margin="0,16,0,0"
+                                Visibility="{Binding ShowBangumiCollection, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="150" />
+                                    <ColumnDefinition Width="78" />
+                                    <ColumnDefinition Width="78" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="Bangumi 收藏"
+                                               Foreground="{DynamicResource TextBrush}"
+                                               FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding BangumiCollectionStatusText}"
+                                               Style="{StaticResource MutedTextStyle}"
+                                               Margin="0,4,0,0" />
+                                </StackPanel>
+                                <ComboBox Grid.Column="1"
+                                          ItemsSource="{Binding BangumiCollectionOptions}"
+                                          DisplayMemberPath="Label"
+                                          SelectedValuePath="Value"
+                                          SelectedValue="{Binding SelectedBangumiCollectionType}"
+                                          Style="{StaticResource ModernComboBoxStyle}"
+                                          Margin="8,0" />
+                                <Button Grid.Column="2"
+                                        Content="刷新"
+                                        Command="{Binding RefreshBangumiCollectionCommand}"
+                                        Style="{StaticResource DetailMiniButtonStyle}" />
+                                <Button Grid.Column="3"
+                                        Content="保存"
+                                        Command="{Binding SaveBangumiCollectionCommand}"
+                                        Style="{StaticResource DetailMiniButtonStyle}"
+                                        Margin="8,0,0,0" />
+                                <Grid Grid.Row="1"
+                                      Grid.ColumnSpan="4"
+                                      Margin="0,12,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="150" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <ComboBox ItemsSource="{Binding BangumiRatingOptions}"
+                                              DisplayMemberPath="Label"
+                                              SelectedValuePath="Value"
+                                              SelectedValue="{Binding BangumiRating}"
+                                              Style="{StaticResource ModernComboBoxStyle}" />
+                                    <TextBox Grid.Column="1"
+                                             Text="{Binding BangumiComment, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource TextBoxStyle}"
+                                             Margin="10,0,0,0"
+                                             ToolTip="Bangumi 短评" />
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource SectionCardStyle}"
                         Margin="0">
                     <StackPanel>
                         <Grid Margin="0,0,0,14">

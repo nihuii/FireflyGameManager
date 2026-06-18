@@ -46,6 +46,9 @@ public partial class MainWindow : Window
             syncLogService,
             machineId,
             gameLibraryService.GetPlaySessions);
+        var bangumiApiClient = new BangumiApiClient();
+        var bangumiAccountStore = new JsonBangumiAccountStore(AppPaths.BangumiAccountPath);
+        var metadataProvider = new BangumiGameMetadataProvider(bangumiApiClient);
         viewModel = new MainWindowViewModel(
             gameLibraryService,
             new WpfFilePickerService(),
@@ -62,7 +65,11 @@ public partial class MainWindow : Window
             new WpfGameSessionPresentationService(),
             saveSyncCoordinator,
             new LocalCoverCacheService(AppPaths.CoverCacheDirectory),
-            syncLogService);
+            syncLogService,
+            bangumiApiClient,
+            bangumiAccountStore,
+            metadataProvider,
+            new RemoteImageCacheService(AppPaths.MetadataCacheDirectory));
         DataContext = viewModel;
         systemTrayService = new SystemTrayService(ShowFromTray, ExitFromTray, AppIconPath);
     }

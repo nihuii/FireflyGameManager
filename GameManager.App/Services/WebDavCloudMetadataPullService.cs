@@ -43,6 +43,16 @@ public sealed class WebDavCloudMetadataPullService : IWebDavCloudMetadataPullSer
                     }
 
                     library.MergePlaySessions(await gameSyncService.DownloadPlaySessionsAsync(settings, gameMetadata));
+                    var externalMetadata = await gameSyncService.DownloadExternalMetadataAsync(settings, gameMetadata.Id);
+                    if (externalMetadata is not null)
+                    {
+                        var externalMerge = library.ApplyCloudExternalMetadata(externalMetadata);
+                        if (externalMerge.IsConflict)
+                        {
+                            syncLogService.Add(gameMetadata.Id, "external-metadata", "download", "conflict", externalMerge.Message);
+                        }
+                    }
+
                     localBeforeMerge.TryGetValue(gameMetadata.Id, out var localGame);
                     if (CloudCoverMergePolicy.ShouldApply(gameMetadata, localGame))
                     {

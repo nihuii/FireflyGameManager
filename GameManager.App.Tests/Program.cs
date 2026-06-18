@@ -21,8 +21,31 @@ var tests = new List<(string Name, Action Body)>
     ("pins game to top", PinsGameToTop),
     ("opens edit mode and saves modified game", OpensEditModeAndSavesModifiedGame),
     ("edit game view keeps save actions visible", EditGameViewKeepsSaveActionsVisible),
+    ("add game view exposes bangumi metadata import", AddGameViewExposesBangumiMetadataImport),
+    ("add game metadata import applies selected fields", AddGameMetadataImportAppliesSelectedFields),
+    ("add game metadata import keeps metadata when cover download fails", AddGameMetadataImportKeepsMetadataWhenCoverDownloadFails),
+    ("add game metadata import keeps remote identity when only cover is selected", AddGameMetadataImportKeepsRemoteIdentityWhenOnlyCoverIsSelected),
+    ("add game metadata preview falls back to search result details", AddGameMetadataPreviewFallsBackToSearchResultDetails),
+    ("bangumi metadata import persists through edit and detail", BangumiMetadataImportPersistsThroughEditAndDetail),
+    ("add game metadata reimport fills missing existing metadata fields", AddGameMetadataReimportFillsMissingExistingMetadataFields),
+    ("add game metadata request can be cancelled", AddGameMetadataRequestCanBeCancelled),
+    ("disposing add game cancels metadata request", DisposingAddGameCancelsMetadataRequest),
+    ("cancelled metadata import does not partially apply fields", CancelledMetadataImportDoesNotPartiallyApplyFields),
+    ("add game metadata view shows rich preview and field options", AddGameMetadataViewShowsRichPreviewAndFieldOptions),
+    ("add game metadata view provides its visibility converter", AddGameMetadataViewProvidesItsVisibilityConverter),
+    ("add game metadata results keep summaries on one line", AddGameMetadataResultsKeepSummariesOnOneLine),
     ("sqlite persists added game", SqlitePersistsAddedGame),
     ("sqlite persists updated game", SqlitePersistsUpdatedGame),
+    ("sqlite persists external game metadata", SqlitePersistsExternalGameMetadata),
+    ("sqlite repairs degraded bangumi metadata links", SqliteRepairsDegradedBangumiMetadataLinks),
+    ("stage c sqlite exposes external metadata snapshots", StageC_SqliteExposesExternalMetadataSnapshots),
+    ("stage c sqlite applies newer cloud external metadata", StageC_SqliteAppliesNewerCloudExternalMetadata),
+    ("stage c sqlite keeps newer local external metadata", StageC_SqliteKeepsNewerLocalExternalMetadata),
+    ("stage c sqlite reports conflicting cloud external metadata", StageC_SqliteReportsConflictingCloudExternalMetadata),
+    ("stage 2 sqlite persists external metadata conflicts", Stage2_SqlitePersistsExternalMetadataConflicts),
+    ("sqlite unlinks external metadata without removing snapshot", SqliteUnlinksExternalMetadataWithoutRemovingSnapshot),
+    ("sqlite persists bangumi collection state", SqlitePersistsBangumiCollectionState),
+    ("in memory metadata update advances timestamp", InMemoryMetadataUpdateAdvancesTimestamp),
     ("sqlite persists deleted game", SqlitePersistsDeletedGame),
     ("sqlite deleted game is not restored by cloud metadata", SqliteDeletedGameIsNotRestoredByCloudMetadata),
     ("sqlite cloud metadata keeps newer local game info", SqliteCloudMetadataKeepsNewerLocalGameInfo),
@@ -48,6 +71,8 @@ var tests = new List<(string Name, Action Body)>
     ("top actions only show on library page", TopActionsOnlyShowOnLibraryPage),
     ("management page can return to library", ManagementPageCanReturnToLibrary),
     ("management page uses shared selection and danger styles", ManagementPageUsesSharedSelectionAndDangerStyles),
+    ("stage 3 management batch metadata match waits for confirmation", Stage3_ManagementBatchMetadataMatchWaitsForConfirmation),
+    ("stage 3 management batch metadata apply links selected games", Stage3_ManagementBatchMetadataApplyLinksSelectedGames),
     ("main window uses modern side navigation shell", MainWindowUsesModernSideNavigationShell),
     ("main window uses compact icon navigation rail", MainWindowUsesCompactIconNavigationRail),
     ("main window exposes navigation selection state", MainWindowExposesNavigationSelectionState),
@@ -56,6 +81,7 @@ var tests = new List<(string Name, Action Body)>
     ("custom title bar uses uniform vector controls", CustomTitleBarUsesUniformVectorControls),
     ("main window has rounded outer frame", MainWindowHasRoundedOuterFrame),
     ("app defines shared modern ui styles", AppDefinesSharedModernUiStyles),
+    ("modern combo box renders arbitrary item templates", ModernComboBoxRendersArbitraryItemTemplates),
     ("local save backup creates zip from save directory", LocalSaveBackupCreatesZipFromSaveDirectory),
     ("local save backup restores zip into save directory", LocalSaveBackupRestoresZipIntoSaveDirectory),
     ("local save backup contains unsafe game ids", LocalSaveBackupContainsUnsafeGameIds),
@@ -71,6 +97,16 @@ var tests = new List<(string Name, Action Body)>
     ("detail manual save sync calls coordinator", DetailManualSaveSyncCallsCoordinator),
     ("detail view has save backup and restore buttons", DetailViewHasSaveBackupAndRestoreButtons),
     ("detail view uses shared immersive visual system", DetailViewUsesSharedImmersiveVisualSystem),
+    ("detail view exposes external metadata and bangumi collection", DetailViewExposesExternalMetadataAndBangumiCollection),
+    ("detail metadata refresh waits for selected field confirmation", DetailMetadataRefreshWaitsForSelectedFieldConfirmation),
+    ("detail metadata refresh apply failure stays inline", DetailMetadataRefreshApplyFailureStaysInline),
+    ("detail long metadata summary expands and collapses", DetailLongMetadataSummaryExpandsAndCollapses),
+    ("stage 2 detail resolves external metadata conflict with cloud", Stage2_DetailResolvesExternalMetadataConflictWithCloud),
+    ("stage 2 detail can keep local external metadata conflict", Stage2_DetailCanKeepLocalExternalMetadataConflict),
+    ("stage 2 detail view exposes external metadata conflict actions", Stage2_DetailViewExposesExternalMetadataConflictActions),
+    ("detail bangumi authentication failure marks reconnect required", DetailBangumiAuthenticationFailureMarksReconnectRequired),
+    ("detail collection save updates existing remote collection", DetailCollectionSaveUpdatesExistingRemoteCollection),
+    ("stage 3 detail collection saves rating and comment", Stage3_DetailCollectionSavesRatingAndComment),
     ("local save backup lists zip history newest first", LocalSaveBackupListsZipHistoryNewestFirst),
     ("local save backup history survives game rename", LocalSaveBackupHistorySurvivesGameRename),
     ("local save backup deletes selected backup file", LocalSaveBackupDeletesSelectedBackupFile),
@@ -80,12 +116,34 @@ var tests = new List<(string Name, Action Body)>
     ("webdav settings store saves and loads config", WebDavSettingsStoreSavesAndLoadsConfig),
     ("webdav settings store encrypts and migrates password", WebDavSettingsStoreEncryptsAndMigratesPassword),
     ("webdav settings store tolerates invalid json", WebDavSettingsStoreToleratesInvalidJson),
+    ("bangumi account store encrypts token", BangumiAccountStoreEncryptsToken),
+    ("bangumi account store persists reconnect requirement", BangumiAccountStorePersistsReconnectRequirement),
+    ("bangumi api searches game subjects", BangumiApiSearchesGameSubjects),
+    ("bangumi api reads subject id aliases from search results", BangumiApiReadsSubjectIdAliasesFromSearchResults),
+    ("bangumi api normalizes protocol-relative image urls", BangumiApiNormalizesProtocolRelativeImageUrls),
+    ("bangumi api upgrades legacy http image urls", BangumiApiUpgradesLegacyHttpImageUrls),
+    ("bangumi api ranks exact title matches first", BangumiApiRanksExactTitleMatchesFirst),
+    ("bangumi api ignores title separator symbols for ranking", BangumiApiIgnoresTitleSeparatorSymbolsForRanking),
+    ("bangumi api falls back to legacy subject search when modern search misses exact title", BangumiApiFallsBackToLegacySubjectSearchWhenModernSearchMissesExactTitle),
+    ("bangumi api maps details and writes collection", BangumiApiMapsDetailsAndWritesCollection),
+    ("bangumi api retries transient subject not found", BangumiApiRetriesTransientSubjectNotFound),
+    ("bangumi api retries one server failure", BangumiApiRetriesOneServerFailure),
+    ("bangumi api reports rate limit and authentication errors", BangumiApiReportsRateLimitAndAuthenticationErrors),
+    ("bangumi api reports request timeout", BangumiApiReportsRequestTimeout),
+    ("bangumi api uses patch for existing collection", BangumiApiUsesPatchForExistingCollection),
+    ("bangumi metadata provider caches search results", BangumiMetadataProviderCachesSearchResults),
+    ("stage 3 metadata search result exposes auxiliary info", Stage3_MetadataSearchResultExposesAuxiliaryInfo),
+    ("stage 3 bangumi api ranks multi keyword title matches", Stage3_BangumiApiRanksMultiKeywordTitleMatches),
+    ("metadata import options merge only selected fields", MetadataImportOptionsMergeOnlySelectedFields),
+    ("remote image cache validates image bytes", RemoteImageCacheValidatesImageBytes),
+    ("remote image cache rejects header only image", RemoteImageCacheRejectsHeaderOnlyImage),
     ("webdav settings view masks application password", WebDavSettingsViewMasksApplicationPassword),
     ("webdav connection test sends propfind with basic auth", WebDavConnectionTestSendsPropfindWithBasicAuth),
     ("webdav connection test creates missing remote directory", WebDavConnectionTestCreatesMissingRemoteDirectory),
     ("webdav connection test creates nested remote directories", WebDavConnectionTestCreatesNestedRemoteDirectories),
     ("webdav connection test reports invalid server urls", WebDavConnectionTestReportsInvalidServerUrls),
     ("webdav manual sync uploads user database", WebDavManualSyncUploadsUserDatabase),
+    ("webdav user database upload excludes bangumi collection cache", WebDavUserDatabaseUploadExcludesBangumiCollectionCache),
     ("webdav manual sync uploads save backup zips", WebDavManualSyncUploadsSaveBackupZips),
     ("webdav manual sync downloads user database", WebDavManualSyncDownloadsUserDatabase),
     ("webdav manual sync treats missing remote data as empty", WebDavManualSyncTreatsMissingRemoteDataAsEmpty),
@@ -97,6 +155,8 @@ var tests = new List<(string Name, Action Body)>
     ("save backup merge copies missing and keeps newest file", SaveBackupMergeCopiesMissingAndKeepsNewestFile),
     ("webdav full sync downloads merges and uploads", WebDavFullSyncDownloadsMergesAndUploads),
     ("webdav v2 publishes per game and per device data", WebDavV2PublishesPerGameAndPerDeviceData),
+    ("stage c webdav v2 uploads external metadata snapshot", StageC_WebDavV2UploadsExternalMetadataSnapshot),
+    ("stage c webdav v2 downloads external metadata snapshot", StageC_WebDavV2DownloadsExternalMetadataSnapshot),
     ("webdav v2 per game upload registers index", WebDavV2PerGameUploadRegistersIndex),
     ("webdav v2 preserves remote play session index", WebDavV2PreservesRemotePlaySessionIndex),
     ("webdav v2 upload preserves newer remote game info", WebDavV2UploadPreservesNewerRemoteGameInfo),
@@ -108,6 +168,7 @@ var tests = new List<(string Name, Action Body)>
     ("sqlite machine path import tolerates null legacy fields", SqliteMachinePathImportToleratesNullLegacyFields),
     ("sqlite machine path imports device settings for unconfigured game", SqliteMachinePathImportsDeviceSettingsForUnconfiguredGame),
     ("startup cloud metadata pull merges game list", StartupCloudMetadataPullMergesGameList),
+    ("stage c startup cloud metadata pull applies external metadata", StageC_StartupCloudMetadataPullAppliesExternalMetadata),
     ("startup cloud metadata pull isolates per game failures", StartupCloudMetadataPullIsolatesPerGameFailures),
     ("startup cloud metadata pull preserves newer local cover", StartupCloudMetadataPullPreservesNewerLocalCover),
     ("startup cloud metadata pull applies remote cover removal", StartupCloudMetadataPullAppliesRemoteCoverRemoval),
@@ -120,6 +181,7 @@ var tests = new List<(string Name, Action Body)>
     ("save sync verifies restored cloud archive", SaveSyncVerifiesRestoredCloudArchive),
     ("webdav full sync stops after failed remote download", WebDavFullSyncStopsAfterFailedRemoteDownload),
     ("webdav full sync uploads metadata for disabled save sync game", WebDavFullSyncUploadsMetadataForDisabledSaveSyncGame),
+    ("stage c full sync uploads external metadata snapshots", StageC_FullSyncUploadsExternalMetadataSnapshots),
     ("webdav settings upload commands call sync service", WebDavSettingsUploadCommandsCallSyncService),
     ("webdav settings view has manual upload buttons", WebDavSettingsViewHasManualUploadButtons),
     ("webdav settings download commands call sync service", WebDavSettingsDownloadCommandsCallSyncService),
@@ -137,6 +199,8 @@ var tests = new List<(string Name, Action Body)>
     ("appearance settings starts on overview and opens sections", AppearanceSettingsStartsOnOverviewAndOpensSections),
     ("appearance settings view uses layered sections", AppearanceSettingsViewUsesLayeredSections),
     ("settings controls use modern shared styles", SettingsControlsUseModernSharedStyles),
+    ("settings exposes password masked bangumi account section", SettingsExposesPasswordMaskedBangumiAccountSection),
+    ("settings displays bangumi reconnect requirement", SettingsDisplaysBangumiReconnectRequirement),
     ("wpf appearance theme updates live brush resources", WpfAppearanceThemeUpdatesLiveBrushResources),
     ("wallpaper palette adapts to different color schemes", WallpaperPaletteAdaptsToDifferentColorSchemes),
     ("wallpaper palette keeps colorful accent over neutral majority", WallpaperPaletteKeepsColorfulAccentOverNeutralMajority),
@@ -366,6 +430,743 @@ static void EditGameViewKeepsSaveActionsVisible()
         "The save and cancel actions should remain in a fixed action bar outside the scrolling fields.");
 }
 
+static void AddGameViewExposesBangumiMetadataImport()
+{
+    var xaml = File.ReadAllText(System.IO.Path.Combine("GameManager.App", "Views", "AddGameView.xaml"));
+
+    AssertTrue(xaml.Contains("SearchMetadataCommand", StringComparison.Ordinal)
+        && xaml.Contains("ApplyMetadataCommand", StringComparison.Ordinal)
+        && xaml.Contains("MetadataSearchResults", StringComparison.Ordinal),
+        "Add and edit game forms should expose explicit Bangumi metadata search and import.");
+}
+
+static void AddGameMetadataImportAppliesSelectedFields()
+{
+    var existing = CreateExternalMetadata() with
+    {
+        Summary = "Keep local summary",
+        Developer = "Keep local developer",
+        Tags = ["Keep local tag"]
+    };
+    var incoming = CreateExternalMetadata() with
+    {
+        SubjectId = "new-subject",
+        Summary = "Remote summary",
+        Developer = "Remote developer",
+        Tags = ["Remote tag"]
+    };
+    var initial = new AddGameRequest(
+        "Local Game",
+        "game.exe",
+        "game",
+        string.Empty,
+        null,
+        externalMetadata: existing);
+    var provider = new FixedMetadataProvider(incoming);
+    var viewModel = new AddGameViewModel(
+        new QueuedFilePickerService(),
+        _ => { },
+        () => { },
+        initial,
+        "保存修改",
+        provider);
+    viewModel.SelectedMetadataResult = provider.Result;
+    viewModel.ImportMetadataSummary = true;
+    viewModel.ImportMetadataDeveloper = false;
+    viewModel.ImportMetadataTags = false;
+
+    ((GameManager.App.Commands.AsyncRelayCommand)viewModel.PreviewMetadataCommand).ExecuteAsync(null).GetAwaiter().GetResult();
+    ((GameManager.App.Commands.AsyncRelayCommand)viewModel.ApplyMetadataCommand).ExecuteAsync(null).GetAwaiter().GetResult();
+
+    AssertEqual("new-subject", viewModel.ExternalMetadata?.SubjectId);
+    AssertEqual("Remote summary", viewModel.ExternalMetadata?.Summary);
+    AssertEqual("Keep local developer", viewModel.ExternalMetadata?.Developer);
+    AssertEqual("Keep local tag", viewModel.ExternalMetadata?.Tags.Single());
+}
+
+static void AddGameMetadataImportKeepsMetadataWhenCoverDownloadFails()
+{
+    var incoming = CreateExternalMetadata() with
+    {
+        SubjectId = "cover-fails-subject",
+        OriginalName = "Cover Fails Original",
+        LocalizedName = "Cover Fails Localized",
+        ImageUrl = "https://lain.bgm.tv/failing-cover.jpg"
+    };
+    var provider = new FixedMetadataProvider(incoming);
+    var viewModel = new AddGameViewModel(
+        new QueuedFilePickerService(),
+        _ => { },
+        () => { },
+        null,
+        "保存",
+        provider,
+        new ThrowingRemoteImageCacheService())
+    {
+        SelectedMetadataResult = provider.Result,
+        ImportMetadataCover = true
+    };
+
+    ((GameManager.App.Commands.AsyncRelayCommand)viewModel.PreviewMetadataCommand).ExecuteAsync(null).GetAwaiter().GetResult();
+    ((GameManager.App.Commands.AsyncRelayCommand)viewModel.ApplyMetadataCommand).ExecuteAsync(null).GetAwaiter().GetResult();
+
+    AssertEqual("cover-fails-subject", viewModel.ExternalMetadata?.SubjectId);
+    AssertEqual("Cover Fails Localized", viewModel.ExternalMetadata?.LocalizedName);
+    AssertEqual(string.Empty, viewModel.CoverImagePath);
+    AssertTrue(viewModel.MetadataStatusText.Contains("封面", StringComparison.Ordinal),
+        "Cover download failures should be reported without discarding imported metadata.");
+}
+
+static void AddGameMetadataImportKeepsRemoteIdentityWhenOnlyCoverIsSelected()
+{
+    var incoming = CreateExternalMetadata() with
+    {
+        SubjectId = "cover-only-subject",
+        OriginalName = "Cover Only Original",
+        LocalizedName = "Cover Only Localized",
+        Summary = "Cover only summary",
+        ImageUrl = "https://lain.bgm.tv/cover-only.jpg",
+        SubjectUrl = "https://bgm.tv/subject/cover-only-subject"
+    };
+    var initial = new AddGameRequest(
+        "Local Display Name",
+        "game.exe",
+        "game",
+        string.Empty,
+        null);
+    var provider = new FixedMetadataProvider(incoming);
+    var images = new RecordingRemoteImageCacheService("cached-cover-only.jpg");
+    var viewModel = new AddGameViewModel(
+        new QueuedFilePickerService(),
+        _ => { },
+        () => { },
+        initial,
+        "保存",
+        provider,
+        images)
+    {
+        SelectedMetadataResult = provider.Result,
+        ImportMetadataName = false,
+        ImportMetadataCover = true,
+        ImportMetadataSummary = false,
+        ImportMetadataReleaseDate = false,
+        ImportMetadataDeveloper = false,
+        ImportMetadataPublisher = false,
+        ImportMetadataTags = false
+    };
+
+    ((GameManager.App.Commands.AsyncRelayCommand)viewModel.PreviewMetadataCommand).ExecuteAsync(null).GetAwaiter().GetResult();
+    ((GameManager.App.Commands.AsyncRelayCommand)viewModel.ApplyMetadataCommand).ExecuteAsync(null).GetAwaiter().GetResult();
+
+    AssertEqual("Local Display Name", viewModel.GameName);
+    AssertEqual("cached-cover-only.jpg", viewModel.CoverImagePath);
+    AssertEqual("cover-only-subject", viewModel.ExternalMetadata?.SubjectId);
+    AssertEqual("Cover Only Original", viewModel.ExternalMetadata?.OriginalName);
+    AssertEqual("Cover Only Localized", viewModel.ExternalMetadata?.LocalizedName);
+    AssertEqual(string.Empty, viewModel.ExternalMetadata?.Summary);
+    AssertEqual(true, viewModel.ExternalMetadata?.IsLinked);
+    AssertEqual("https://bgm.tv/subject/cover-only-subject", viewModel.ExternalMetadata?.SubjectUrl);
+}
+
+static void AddGameMetadataPreviewFallsBackToSearchResultDetails()
+{
+    var result = new GameMetadataSearchResult(
+        "bangumi",
+        "fallback-subject",
+        "Fallback Original",
+        "Fallback Localized",
+        "2026-06-17",
+        "https://lain.bgm.tv/fallback-cover.jpg",
+        "Fallback summary");
+    var provider = new SearchResultOnlyMetadataProvider(result);
+    var images = new RecordingRemoteImageCacheService("cached-fallback-cover.jpg");
+    var initial = new AddGameRequest(
+        "Local Existing Game",
+        "game.exe",
+        "game",
+        string.Empty,
+        null);
+    var viewModel = new AddGameViewModel(
+        new QueuedFilePickerService(),
+        _ => { },
+        () => { },
+        initial,
+        "保存",
+        provider,
+        images)
+    {
+        SelectedMetadataResult = result
+    };
+
+    ((GameManager.App.Commands.AsyncRelayCommand)viewModel.PreviewMetadataCommand).ExecuteAsync(null).GetAwaiter().GetResult();
+
+    AssertEqual("fallback-subject", viewModel.MetadataPreview?.SubjectId);
+    AssertEqual("Fallback Localized", viewModel.MetadataPreview?.LocalizedName);
+    AssertTrue(viewModel.MetadataStatusText.Contains("搜索结果", StringComparison.Ordinal),
+        "When full details are unavailable, the preview should clearly say it is using search result data.");
+
+    ((GameManager.App.Commands.AsyncRelayCommand)viewModel.ApplyMetadataCommand).ExecuteAsync(null).GetAwaiter().GetResult();
+
+    AssertEqual("fallback-subject", viewModel.ExternalMetadata?.SubjectId);
+    AssertEqual(true, viewModel.ExternalMetadata?.IsLinked);
+    AssertEqual("https://bgm.tv/subject/fallback-subject", viewModel.ExternalMetadata?.SubjectUrl);
+    AssertEqual("Fallback Original", viewModel.ExternalMetadata?.OriginalName);
+    AssertEqual("Fallback Localized", viewModel.ExternalMetadata?.LocalizedName);
+    AssertEqual("Fallback summary", viewModel.ExternalMetadata?.Summary);
+    AssertEqual("https://lain.bgm.tv/fallback-cover.jpg", viewModel.ExternalMetadata?.ImageUrl);
+    AssertEqual("cached-fallback-cover.jpg", viewModel.CoverImagePath);
+    AssertEqual("https://lain.bgm.tv/fallback-cover.jpg", images.LastImageUrl);
+}
+
+static void BangumiMetadataImportPersistsThroughEditAndDetail()
+{
+    using var database = TempDatabase.Create();
+    var library = new SqliteGameLibraryService(database.Path);
+    var game = library.AddGame(CreateAddGameRequest("Bangumi End To End"));
+    var metadata = CreateExternalMetadata() with
+    {
+        SubjectId = "172612",
+        OriginalName = "千恋＊万花",
+        LocalizedName = "千恋＊万花",
+        Summary = "完整简介",
+        ReleaseDate = "2016-07-29",
+        Developer = "ゆずソフト",
+        Publisher = "HIKARI FIELD",
+        Tags = ["Galgame", "ADV"],
+        ImageUrl = "https://lain.bgm.tv/pic/cover/l/example.jpg",
+        SubjectUrl = "https://bgm.tv/subject/172612"
+    };
+    var provider = new FixedMetadataProvider(metadata);
+    var images = new RecordingRemoteImageCacheService("cached-172612-cover.jpg");
+    var initial = new AddGameRequest(
+        game.Name,
+        game.ExecutablePath,
+        game.GameRootPath,
+        game.SavePath,
+        game.CoverImagePath,
+        game.LaunchArguments,
+        game.RunAsAdministrator,
+        game.WorkingDirectory,
+        game.MonitorProcessName,
+        game.SyncEnabled,
+        game.ExternalMetadata);
+    var editor = new AddGameViewModel(
+        new QueuedFilePickerService(),
+        request => library.UpdateGame(new UpdateGameRequest(
+            game.Id,
+            request.Name,
+            request.ExecutablePath,
+            request.GameRootPath,
+            request.SavePath,
+            request.CoverImagePath,
+            request.LaunchArguments,
+            request.RunAsAdministrator,
+            request.WorkingDirectory,
+            request.MonitorProcessName,
+            request.SyncEnabled,
+            request.ExternalMetadata)),
+        () => { },
+        initial,
+        "保存修改",
+        provider,
+        images)
+    {
+        ImportMetadataName = true,
+        ImportMetadataCover = true,
+        ImportMetadataSummary = true,
+        ImportMetadataReleaseDate = true,
+        ImportMetadataDeveloper = true,
+        ImportMetadataPublisher = true,
+        ImportMetadataTags = true
+    };
+
+    ((GameManager.App.Commands.AsyncRelayCommand)editor.SearchMetadataCommand).ExecuteAsync(null).GetAwaiter().GetResult();
+    editor.SelectedMetadataResult = editor.MetadataSearchResults.Single();
+    ((GameManager.App.Commands.AsyncRelayCommand)editor.PreviewMetadataCommand).ExecuteAsync(null).GetAwaiter().GetResult();
+    ((GameManager.App.Commands.AsyncRelayCommand)editor.ApplyMetadataCommand).ExecuteAsync(null).GetAwaiter().GetResult();
+    editor.SaveCommand.Execute(null);
+
+    var reopened = new SqliteGameLibraryService(database.Path);
+    var saved = reopened.GetGames().Single(item => item.Id == game.Id);
+    var detail = CreateMetadataDetailViewModel(saved, reopened, provider);
+
+    AssertEqual("cached-172612-cover.jpg", saved.CoverImagePath);
+    AssertEqual("172612", saved.ExternalMetadata?.SubjectId);
+    AssertEqual("完整简介", saved.ExternalMetadata?.Summary);
+    AssertEqual("ゆずソフト", saved.ExternalMetadata?.Developer);
+    AssertEqual("HIKARI FIELD", saved.ExternalMetadata?.Publisher);
+    AssertEqual(2, saved.ExternalMetadata?.Tags.Count);
+    AssertTrue(detail.HasExternalMetadata && detail.HasLinkedExternalMetadata,
+        "The detail page should receive the linked metadata saved by the editor.");
+    AssertTrue(detail.RefreshExternalMetadataCommand.CanExecute(null),
+        "A saved Bangumi link should allow metadata refresh.");
+    AssertTrue(detail.OpenExternalSourceCommand.CanExecute(null),
+        "A saved canonical subject URL should allow opening the source.");
+    AssertTrue(detail.UnlinkExternalMetadataCommand.CanExecute(null),
+        "A saved Bangumi link should allow unlinking.");
+}
+
+static void AddGameMetadataReimportFillsMissingExistingMetadataFields()
+{
+    var broken = CreateExternalMetadata() with
+    {
+        SubjectId = "broken-subject",
+        OriginalName = string.Empty,
+        LocalizedName = string.Empty,
+        Summary = string.Empty,
+        ImageUrl = string.Empty,
+        SubjectUrl = "https://bgm.tv/subject/broken-subject"
+    };
+    var incoming = CreateExternalMetadata() with
+    {
+        SubjectId = "fixed-subject",
+        OriginalName = "Fixed Original",
+        LocalizedName = "Fixed Localized",
+        Summary = "Fixed summary",
+        ImageUrl = "https://lain.bgm.tv/fixed-cover.jpg"
+    };
+    var initial = new AddGameRequest(
+        "Local Existing Game",
+        "game.exe",
+        "game",
+        string.Empty,
+        null,
+        externalMetadata: broken);
+    var provider = new FixedMetadataProvider(incoming);
+    var images = new RecordingRemoteImageCacheService("cached-fixed-cover.jpg");
+    var viewModel = new AddGameViewModel(
+        new QueuedFilePickerService(),
+        _ => { },
+        () => { },
+        initial,
+        "保存",
+        provider,
+        images)
+    {
+        SelectedMetadataResult = provider.Result
+    };
+
+    ((GameManager.App.Commands.AsyncRelayCommand)viewModel.PreviewMetadataCommand).ExecuteAsync(null).GetAwaiter().GetResult();
+    ((GameManager.App.Commands.AsyncRelayCommand)viewModel.ApplyMetadataCommand).ExecuteAsync(null).GetAwaiter().GetResult();
+
+    AssertEqual("fixed-subject", viewModel.ExternalMetadata?.SubjectId);
+    AssertEqual("Fixed Original", viewModel.ExternalMetadata?.OriginalName);
+    AssertEqual("Fixed Localized", viewModel.ExternalMetadata?.LocalizedName);
+    AssertEqual("Fixed summary", viewModel.ExternalMetadata?.Summary);
+    AssertEqual("https://lain.bgm.tv/fixed-cover.jpg", viewModel.ExternalMetadata?.ImageUrl);
+    AssertEqual("cached-fixed-cover.jpg", viewModel.CoverImagePath);
+}
+
+static void AddGameMetadataRequestCanBeCancelled()
+{
+    var provider = new CancellableMetadataProvider();
+    var viewModel = new AddGameViewModel(
+        new QueuedFilePickerService(),
+        _ => { },
+        () => { },
+        null,
+        "保存",
+        provider);
+    viewModel.MetadataSearchQuery = "cancel me";
+
+    var search = ((GameManager.App.Commands.AsyncRelayCommand)viewModel.SearchMetadataCommand).ExecuteAsync(null);
+    provider.Started.Task.Wait(TimeSpan.FromSeconds(2));
+    viewModel.CancelMetadataRequestCommand.Execute(null);
+    search.GetAwaiter().GetResult();
+
+    AssertTrue(provider.WasCancelled, "Cancelling metadata work should cancel the active provider request.");
+    AssertTrue(viewModel.MetadataStatusText.Contains("取消", StringComparison.Ordinal),
+        "Cancelled searches should show an inline cancellation status.");
+}
+
+static void DisposingAddGameCancelsMetadataRequest()
+{
+    var provider = new CancellableMetadataProvider();
+    var viewModel = new AddGameViewModel(
+        new QueuedFilePickerService(),
+        _ => { },
+        () => { },
+        null,
+        "保存",
+        provider);
+    viewModel.MetadataSearchQuery = "leave page";
+
+    var search = ((GameManager.App.Commands.AsyncRelayCommand)viewModel.SearchMetadataCommand).ExecuteAsync(null);
+    provider.Started.Task.Wait(TimeSpan.FromSeconds(2));
+    viewModel.Dispose();
+    search.GetAwaiter().GetResult();
+
+    AssertTrue(provider.WasCancelled, "Leaving the add/edit page should cancel active metadata requests.");
+}
+
+static void CancelledMetadataImportDoesNotPartiallyApplyFields()
+{
+    var metadata = CreateExternalMetadata() with { LocalizedName = "Remote title" };
+    var provider = new FixedMetadataProvider(metadata);
+    var images = new CancellableRemoteImageCacheService();
+    var viewModel = new AddGameViewModel(
+        new QueuedFilePickerService(),
+        _ => { },
+        () => { },
+        null,
+        "保存",
+        provider,
+        images)
+    {
+        GameName = "Local title",
+        SelectedMetadataResult = provider.Result
+    };
+    ((GameManager.App.Commands.AsyncRelayCommand)viewModel.PreviewMetadataCommand).ExecuteAsync(null).GetAwaiter().GetResult();
+
+    var apply = ((GameManager.App.Commands.AsyncRelayCommand)viewModel.ApplyMetadataCommand).ExecuteAsync(null);
+    images.Started.Task.Wait(TimeSpan.FromSeconds(2));
+    viewModel.CancelMetadataRequestCommand.Execute(null);
+    apply.GetAwaiter().GetResult();
+
+    AssertEqual("Local title", viewModel.GameName);
+    AssertEqual<ExternalGameMetadata?>(null, viewModel.ExternalMetadata);
+}
+
+static void AddGameMetadataViewShowsRichPreviewAndFieldOptions()
+{
+    var xaml = File.ReadAllText(System.IO.Path.Combine("GameManager.App", "Views", "AddGameView.xaml"));
+
+    AssertTrue(xaml.Contains("PreviewMetadataCommand", StringComparison.Ordinal)
+        && xaml.Contains("CancelMetadataRequestCommand", StringComparison.Ordinal)
+        && xaml.Contains("SummaryPreview", StringComparison.Ordinal)
+        && xaml.Contains("ImageUrl", StringComparison.Ordinal)
+        && xaml.Contains("ImportMetadataSummary", StringComparison.Ordinal)
+        && xaml.Contains("ImportMetadataReleaseDate", StringComparison.Ordinal)
+        && xaml.Contains("ImportMetadataDeveloper", StringComparison.Ordinal)
+        && xaml.Contains("ImportMetadataPublisher", StringComparison.Ordinal)
+        && xaml.Contains("ImportMetadataTags", StringComparison.Ordinal),
+        "Metadata search should expose a rich preview, cancellation, and field-level import options.");
+}
+
+static void AddGameMetadataViewProvidesItsVisibilityConverter()
+{
+    var xaml = File.ReadAllText(System.IO.Path.Combine("GameManager.App", "Views", "AddGameView.xaml"));
+
+    AssertTrue(xaml.Contains("<BooleanToVisibilityConverter x:Key=\"BooleanToVisibilityConverter\"", StringComparison.Ordinal),
+        "AddGameView must provide the converter used by its deferred metadata preview template.");
+}
+
+static void AddGameMetadataResultsKeepSummariesOnOneLine()
+{
+    var xaml = File.ReadAllText(System.IO.Path.Combine("GameManager.App", "Views", "AddGameView.xaml"));
+
+    AssertTrue(xaml.Contains("CompactSummaryPreview", StringComparison.Ordinal)
+        && xaml.Contains("TextWrapping=\"NoWrap\"", StringComparison.Ordinal),
+        "Bangumi result summaries should use a compact single-line preview inside fixed-height items.");
+}
+
+static void DetailViewExposesExternalMetadataAndBangumiCollection()
+{
+    var xaml = File.ReadAllText(System.IO.Path.Combine("GameManager.App", "Views", "GameDetailView.xaml"));
+
+    AssertTrue(xaml.Contains("ExternalMetadataSummary", StringComparison.Ordinal)
+        && xaml.Contains("RefreshExternalMetadataCommand", StringComparison.Ordinal)
+        && xaml.Contains("SaveBangumiCollectionCommand", StringComparison.Ordinal),
+        "Game details should expose imported metadata and compact Bangumi collection controls.");
+}
+
+static void DetailMetadataRefreshWaitsForSelectedFieldConfirmation()
+{
+    var library = new InMemoryGameLibraryService();
+    var original = CreateExternalMetadata() with
+    {
+        Summary = "Local summary",
+        Developer = "Local developer"
+    };
+    var game = library.AddGame(new AddGameRequest(
+        "Refresh Game",
+        "game.exe",
+        "game",
+        string.Empty,
+        null,
+        externalMetadata: original));
+    var incoming = original with
+    {
+        LocalizedName = "Remote title",
+        Summary = "Remote summary",
+        Developer = "Remote developer",
+        SourceUpdatedAtUtc = original.SourceUpdatedAtUtc.AddDays(1)
+    };
+    var detail = CreateMetadataDetailViewModel(game, library, new FixedMetadataProvider(incoming));
+
+    ((GameManager.App.Commands.AsyncRelayCommand)detail.RefreshExternalMetadataCommand).ExecuteAsync(null).GetAwaiter().GetResult();
+
+    AssertTrue(detail.HasMetadataRefreshPreview, "Refreshing should show a confirmation preview before saving.");
+    AssertEqual("Local summary", library.GetExternalMetadata(game.Id)?.Summary);
+    AssertTrue(detail.MetadataRefreshDifferences.Contains("简介", StringComparison.Ordinal)
+        && detail.MetadataRefreshDifferences.Contains("开发商", StringComparison.Ordinal),
+        "Refresh preview should identify changed fields.");
+
+    detail.RefreshImportName = true;
+    detail.RefreshImportSummary = true;
+    detail.RefreshImportDeveloper = false;
+    ((GameManager.App.Commands.AsyncRelayCommand)detail.ApplyExternalMetadataRefreshCommand).ExecuteAsync(null).GetAwaiter().GetResult();
+
+    AssertEqual("Remote title", library.GetGames().Single(item => item.Id == game.Id).Name);
+    AssertEqual("Remote summary", library.GetExternalMetadata(game.Id)?.Summary);
+    AssertEqual("Local developer", library.GetExternalMetadata(game.Id)?.Developer);
+}
+
+static void DetailMetadataRefreshApplyFailureStaysInline()
+{
+    var library = new InMemoryGameLibraryService();
+    var game = library.AddGame(new AddGameRequest(
+        "Refresh Failure",
+        "game.exe",
+        "game",
+        string.Empty,
+        "local-cover.png",
+        externalMetadata: CreateExternalMetadata()));
+    var incoming = game.ExternalMetadata! with { ImageUrl = "https://example.com/new-cover.png" };
+    var detail = CreateMetadataDetailViewModel(
+        game,
+        library,
+        new FixedMetadataProvider(incoming),
+        remoteImageCacheService: new ThrowingRemoteImageCacheService());
+    ((GameManager.App.Commands.AsyncRelayCommand)detail.RefreshExternalMetadataCommand).ExecuteAsync(null).GetAwaiter().GetResult();
+    detail.RefreshImportCover = true;
+
+    ((GameManager.App.Commands.AsyncRelayCommand)detail.ApplyExternalMetadataRefreshCommand).ExecuteAsync(null).GetAwaiter().GetResult();
+
+    AssertEqual("local-cover.png", library.GetGames().Single(item => item.Id == game.Id).CoverImagePath);
+    AssertTrue(detail.ExternalMetadataStatusText.Contains("失败", StringComparison.Ordinal),
+        "Refresh apply failures should remain inline instead of escaping the command.");
+}
+
+static void DetailLongMetadataSummaryExpandsAndCollapses()
+{
+    var library = new InMemoryGameLibraryService();
+    var longSummary = string.Concat(Enumerable.Repeat("这是一段较长的游戏简介。", 50));
+    var game = library.AddGame(new AddGameRequest(
+        "Long Summary",
+        "game.exe",
+        "game",
+        string.Empty,
+        null,
+        externalMetadata: CreateExternalMetadata() with { Summary = longSummary }));
+    var detail = CreateMetadataDetailViewModel(game, library, new FixedMetadataProvider(game.ExternalMetadata!));
+
+    AssertTrue(detail.CanToggleExternalSummary, "Long summaries should expose an expand command.");
+    AssertTrue(detail.ExternalMetadataSummaryDisplay.Length < longSummary.Length,
+        "Collapsed summaries should use a shorter preview.");
+
+    detail.ToggleExternalSummaryCommand.Execute(null);
+
+    AssertEqual(longSummary, detail.ExternalMetadataSummaryDisplay);
+    AssertEqual("收起简介", detail.ExternalSummaryToggleText);
+}
+
+static void Stage2_DetailResolvesExternalMetadataConflictWithCloud()
+{
+    var library = new InMemoryGameLibraryService();
+    var game = library.AddGame(new AddGameRequest(
+        "Conflict Cloud",
+        "game.exe",
+        "game",
+        string.Empty,
+        null,
+        externalMetadata: CreateExternalMetadata() with { SubjectId = "local-subject", Summary = "Local summary" }));
+    library.ApplyCloudExternalMetadata(CreateExternalMetadataSnapshot(
+        game.Id,
+        game.ExternalMetadata!,
+        new DateTime(2026, 6, 7, 8, 0, 0, DateTimeKind.Utc)));
+    library.ApplyCloudExternalMetadata(CreateExternalMetadataSnapshot(
+        game.Id,
+        CreateExternalMetadata() with { SubjectId = "cloud-subject", Summary = "Cloud summary" },
+        new DateTime(2026, 6, 7, 12, 0, 0, DateTimeKind.Utc)));
+    var detail = CreateMetadataDetailViewModel(game, library, new FixedMetadataProvider(game.ExternalMetadata!));
+
+    AssertTrue(detail.HasExternalMetadataConflict, "Details should expose unresolved external metadata conflicts.");
+
+    detail.UseCloudExternalMetadataCommand.Execute(null);
+
+    AssertEqual("cloud-subject", library.GetExternalMetadata(game.Id)?.SubjectId);
+    AssertEqual("Cloud summary", detail.ExternalMetadataSummary);
+    AssertTrue(!detail.HasExternalMetadataConflict, "Resolving with cloud metadata should clear the conflict.");
+}
+
+static void Stage2_DetailCanKeepLocalExternalMetadataConflict()
+{
+    var library = new InMemoryGameLibraryService();
+    var game = library.AddGame(new AddGameRequest(
+        "Conflict Local",
+        "game.exe",
+        "game",
+        string.Empty,
+        null,
+        externalMetadata: CreateExternalMetadata() with { SubjectId = "local-subject", Summary = "Local summary" }));
+    library.ApplyCloudExternalMetadata(CreateExternalMetadataSnapshot(
+        game.Id,
+        game.ExternalMetadata!,
+        new DateTime(2026, 6, 7, 8, 0, 0, DateTimeKind.Utc)));
+    library.ApplyCloudExternalMetadata(CreateExternalMetadataSnapshot(
+        game.Id,
+        CreateExternalMetadata() with { SubjectId = "cloud-subject", Summary = "Cloud summary" },
+        new DateTime(2026, 6, 7, 12, 0, 0, DateTimeKind.Utc)));
+    var detail = CreateMetadataDetailViewModel(game, library, new FixedMetadataProvider(game.ExternalMetadata!));
+
+    detail.UseLocalExternalMetadataCommand.Execute(null);
+
+    AssertEqual("local-subject", library.GetExternalMetadata(game.Id)?.SubjectId);
+    AssertTrue(library.GetExternalMetadataConflict(game.Id) is null,
+        "Keeping local metadata should clear the pending conflict.");
+    AssertTrue(!detail.HasExternalMetadataConflict, "The detail page should stop showing a resolved conflict.");
+}
+
+static void Stage2_DetailViewExposesExternalMetadataConflictActions()
+{
+    var xaml = File.ReadAllText(System.IO.Path.Combine("GameManager.App", "Views", "GameDetailView.xaml"));
+
+    AssertTrue(xaml.Contains("HasExternalMetadataConflict", StringComparison.Ordinal)
+        && xaml.Contains("UseLocalExternalMetadataCommand", StringComparison.Ordinal)
+        && xaml.Contains("UseCloudExternalMetadataCommand", StringComparison.Ordinal)
+        && xaml.Contains("UnlinkConflictingExternalMetadataCommand", StringComparison.Ordinal),
+        "Game details should expose compact external metadata conflict actions.");
+}
+
+static void DetailBangumiAuthenticationFailureMarksReconnectRequired()
+{
+    using var workspace = TempDirectory.Create();
+    var accountStore = new JsonBangumiAccountStore(
+        System.IO.Path.Combine(workspace.Path, "bangumi-account.json"),
+        new TestSecretProtector());
+    accountStore.Save(new BangumiAccount("player", "Player", string.Empty, "token", DateTime.UtcNow));
+    var library = new InMemoryGameLibraryService();
+    var game = library.AddGame(new AddGameRequest(
+        "Rejected Account",
+        "game.exe",
+        "game",
+        string.Empty,
+        null,
+        externalMetadata: CreateExternalMetadata()));
+    var detail = CreateMetadataDetailViewModel(
+        game,
+        library,
+        new FixedMetadataProvider(game.ExternalMetadata!),
+        accountStore,
+        new RejectingBangumiApiClient());
+
+    ((GameManager.App.Commands.AsyncRelayCommand)detail.RefreshBangumiCollectionCommand).ExecuteAsync(null).GetAwaiter().GetResult();
+
+    AssertTrue(accountStore.Load()!.RequiresReconnect,
+        "Authenticated Bangumi failures should preserve the account and mark it for reconnection.");
+    AssertTrue(!detail.ShowBangumiCollection,
+        "Collection controls should hide after the saved account becomes invalid.");
+}
+
+static void DetailCollectionSaveUpdatesExistingRemoteCollection()
+{
+    using var workspace = TempDirectory.Create();
+    var accountStore = new JsonBangumiAccountStore(
+        System.IO.Path.Combine(workspace.Path, "bangumi-account.json"),
+        new TestSecretProtector());
+    accountStore.Save(new BangumiAccount("player", "Player", string.Empty, "token", DateTime.UtcNow));
+    var library = new InMemoryGameLibraryService();
+    var game = library.AddGame(new AddGameRequest(
+        "Existing Collection",
+        "game.exe",
+        "game",
+        string.Empty,
+        null,
+        externalMetadata: CreateExternalMetadata()));
+    library.SaveBangumiCollectionState(new BangumiCollectionState(
+        game.Id,
+        game.ExternalMetadata!.SubjectId,
+        "player",
+        BangumiCollectionType.Wish,
+        0,
+        string.Empty,
+        DateTime.UtcNow,
+        DateTime.UtcNow));
+    var api = new RecordingBangumiApiClient();
+    var detail = CreateMetadataDetailViewModel(game, library, new FixedMetadataProvider(game.ExternalMetadata!), accountStore, api);
+    detail.SelectedBangumiCollectionType = BangumiCollectionType.Doing;
+
+    ((GameManager.App.Commands.AsyncRelayCommand)detail.SaveBangumiCollectionCommand).ExecuteAsync(null).GetAwaiter().GetResult();
+
+    AssertTrue(api.LastSaveWasExisting, "Saving a cached remote collection should use the update operation.");
+}
+
+static void Stage3_DetailCollectionSavesRatingAndComment()
+{
+    using var workspace = TempDirectory.Create();
+    var accountStore = new JsonBangumiAccountStore(
+        System.IO.Path.Combine(workspace.Path, "bangumi-account.json"),
+        new TestSecretProtector());
+    accountStore.Save(new BangumiAccount("player", "Player", string.Empty, "token", DateTime.UtcNow));
+    var library = new InMemoryGameLibraryService();
+    var game = library.AddGame(new AddGameRequest(
+        "Rated Collection",
+        "game.exe",
+        "game",
+        string.Empty,
+        null,
+        externalMetadata: CreateExternalMetadata()));
+    var api = new RecordingBangumiApiClient();
+    var detail = CreateMetadataDetailViewModel(game, library, new FixedMetadataProvider(game.ExternalMetadata!), accountStore, api);
+    detail.SelectedBangumiCollectionType = BangumiCollectionType.Collect;
+    detail.BangumiRating = 9;
+    detail.BangumiComment = "值得重玩";
+
+    ((GameManager.App.Commands.AsyncRelayCommand)detail.SaveBangumiCollectionCommand).ExecuteAsync(null).GetAwaiter().GetResult();
+
+    AssertEqual(9, api.LastSavedState?.Rating);
+    AssertEqual("值得重玩", api.LastSavedState?.Comment);
+    var cached = library.GetBangumiCollectionState(game.Id);
+    AssertEqual(9, cached?.Rating);
+    AssertEqual("值得重玩", cached?.Comment);
+}
+
+static void SettingsExposesPasswordMaskedBangumiAccountSection()
+{
+    var xaml = File.ReadAllText(System.IO.Path.Combine("GameManager.App", "Views", "AppearanceSettingsView.xaml"));
+
+    AssertTrue(xaml.Contains("CommandParameter=\"Accounts\"", StringComparison.Ordinal)
+        && xaml.Contains("<PasswordBox", StringComparison.Ordinal)
+        && xaml.Contains("ConnectBangumiCommand", StringComparison.Ordinal),
+        "Settings should expose a password-masked Bangumi account section.");
+}
+
+static void SettingsDisplaysBangumiReconnectRequirement()
+{
+    using var workspace = TempDirectory.Create();
+    var accountStore = new JsonBangumiAccountStore(
+        System.IO.Path.Combine(workspace.Path, "bangumi-account.json"),
+        new TestSecretProtector());
+    accountStore.Save(new BangumiAccount(
+        "player",
+        "Player",
+        string.Empty,
+        "token",
+        DateTime.UtcNow,
+        RequiresReconnect: true));
+    var settings = new AppearanceSettingsViewModel(
+        new QueuedFilePickerService(),
+        new RecordingAppearanceSettingsStore(),
+        _ => { },
+        () => { },
+        new InMemoryAppSettingsStore(),
+        _ => { },
+        new NoopAutoStartService(),
+        new LocalGameDiscoveryService(),
+        () => [],
+        _ => { },
+        new LocalDataMaintenanceService(workspace.Path),
+        () => [],
+        () => { },
+        bangumiAccountStore: accountStore,
+        bangumiApiClient: new RejectingBangumiApiClient());
+
+    AssertTrue(settings.RequiresBangumiReconnect, "Settings should expose the rejected-account state.");
+    AssertTrue(settings.BangumiAccountDisplay.Contains("重新连接", StringComparison.Ordinal),
+        "Settings should clearly ask the user to reconnect the rejected account.");
+}
+
 static void SqlitePersistsAddedGame()
 {
     using var database = TempDatabase.Create();
@@ -401,6 +1202,619 @@ static void SqlitePersistsUpdatedGame()
     AssertEqual("After Edit", game.Name);
     AssertEqual(@"D:\Games\After\After.exe", game.ExecutablePath);
     AssertEqual(@"D:\Images\after.png", game.CoverImagePath);
+}
+
+static void SqlitePersistsExternalGameMetadata()
+{
+    using var database = TempDatabase.Create();
+    var service = new SqliteGameLibraryService(database.Path);
+    var added = service.AddGame(CreateAddGameRequest("Metadata Game"));
+    var metadata = CreateExternalMetadata();
+
+    service.UpdateExternalMetadata(added.Id, metadata);
+
+    var reloaded = new SqliteGameLibraryService(database.Path);
+    var game = reloaded.GetGames().Single();
+    AssertEqual("bangumi", game.ExternalMetadata?.Provider);
+    AssertEqual("12345", game.ExternalMetadata?.SubjectId);
+    AssertEqual("Imported summary", game.ExternalMetadata?.Summary);
+    AssertEqual("Adventure", game.ExternalMetadata?.Tags.Single());
+}
+
+static void SqliteRepairsDegradedBangumiMetadataLinks()
+{
+    using var database = TempDatabase.Create();
+    var service = new SqliteGameLibraryService(database.Path);
+    var degraded = service.AddGame(CreateAddGameRequest("Degraded Bangumi Link"));
+    var intentionallyUnlinked = service.AddGame(CreateAddGameRequest("Intentional Bangumi Unlink"));
+    service.UpdateExternalMetadata(degraded.Id, CreateExternalMetadata() with
+    {
+        SubjectId = "172612",
+        IsLinked = false,
+        SubjectUrl = string.Empty
+    });
+    service.UpdateExternalMetadata(intentionallyUnlinked.Id, CreateExternalMetadata() with
+    {
+        SubjectId = "12345",
+        IsLinked = false,
+        SubjectUrl = "https://bgm.tv/subject/12345"
+    });
+
+    var reopened = new SqliteGameLibraryService(database.Path);
+    var repaired = reopened.GetGames().Single(game => game.Id == degraded.Id);
+    var preserved = reopened.GetGames().Single(game => game.Id == intentionallyUnlinked.Id);
+
+    AssertEqual(true, repaired.ExternalMetadata?.IsLinked);
+    AssertEqual("https://bgm.tv/subject/172612", repaired.ExternalMetadata?.SubjectUrl);
+    AssertEqual(false, preserved.ExternalMetadata?.IsLinked);
+    AssertEqual("https://bgm.tv/subject/12345", preserved.ExternalMetadata?.SubjectUrl);
+}
+
+static void StageC_SqliteExposesExternalMetadataSnapshots()
+{
+    using var database = TempDatabase.Create();
+    var service = new SqliteGameLibraryService(database.Path);
+    var added = service.AddGame(CreateAddGameRequest("Stage C Snapshot"));
+    var metadata = CreateExternalMetadata() with { Summary = "Cloud-ready summary" };
+
+    service.UpdateExternalMetadata(added.Id, metadata);
+
+    var snapshot = service.GetExternalMetadataSnapshot(added.Id);
+    AssertTrue(snapshot is not null, "Stage C sync needs a cloud-ready external metadata snapshot.");
+    AssertEqual(1, snapshot!.SchemaVersion);
+    AssertEqual(added.Id, snapshot.GameId);
+    AssertEqual("bangumi", snapshot.Provider);
+    AssertEqual("12345", snapshot.SubjectId);
+    AssertEqual("Cloud-ready summary", snapshot.Summary);
+    AssertTrue(snapshot.SnapshotUpdatedAtUtc > DateTime.MinValue,
+        "External metadata snapshots must carry their own Firefly update timestamp.");
+    AssertEqual(added.Id, service.GetExternalMetadataSnapshots().Single().GameId);
+}
+
+static void StageC_SqliteAppliesNewerCloudExternalMetadata()
+{
+    using var database = TempDatabase.Create();
+    var service = new SqliteGameLibraryService(database.Path);
+    var game = service.AddGame(CreateAddGameRequest("Stage C Newer Cloud"));
+    var older = new DateTime(2026, 6, 7, 8, 0, 0, DateTimeKind.Utc);
+    var newer = older.AddHours(2);
+
+    service.ApplyCloudExternalMetadata(CreateExternalMetadataSnapshot(
+        game.Id,
+        CreateExternalMetadata() with { Summary = "Old local summary" },
+        older));
+    var result = service.ApplyCloudExternalMetadata(CreateExternalMetadataSnapshot(
+        game.Id,
+        CreateExternalMetadata() with { Summary = "New cloud summary" },
+        newer));
+
+    AssertEqual(ExternalMetadataMergeStatus.Applied, result.Status);
+    AssertEqual("New cloud summary", service.GetExternalMetadata(game.Id)?.Summary);
+    AssertEqual(newer, service.GetExternalMetadataSnapshot(game.Id)?.SnapshotUpdatedAtUtc);
+}
+
+static void StageC_SqliteKeepsNewerLocalExternalMetadata()
+{
+    using var database = TempDatabase.Create();
+    var service = new SqliteGameLibraryService(database.Path);
+    var game = service.AddGame(CreateAddGameRequest("Stage C Newer Local"));
+    var newer = new DateTime(2026, 6, 7, 12, 0, 0, DateTimeKind.Utc);
+    var older = newer.AddHours(-3);
+
+    service.ApplyCloudExternalMetadata(CreateExternalMetadataSnapshot(
+        game.Id,
+        CreateExternalMetadata() with { Summary = "New local summary" },
+        newer));
+    var result = service.ApplyCloudExternalMetadata(CreateExternalMetadataSnapshot(
+        game.Id,
+        CreateExternalMetadata() with { Summary = "Stale cloud summary" },
+        older));
+
+    AssertEqual(ExternalMetadataMergeStatus.KeptLocal, result.Status);
+    AssertEqual("New local summary", service.GetExternalMetadata(game.Id)?.Summary);
+    AssertEqual(newer, service.GetExternalMetadataSnapshot(game.Id)?.SnapshotUpdatedAtUtc);
+}
+
+static void StageC_SqliteReportsConflictingCloudExternalMetadata()
+{
+    using var database = TempDatabase.Create();
+    var service = new SqliteGameLibraryService(database.Path);
+    var game = service.AddGame(CreateAddGameRequest("Stage C Conflict"));
+    var first = new DateTime(2026, 6, 7, 8, 0, 0, DateTimeKind.Utc);
+
+    service.ApplyCloudExternalMetadata(CreateExternalMetadataSnapshot(game.Id, CreateExternalMetadata(), first));
+    var result = service.ApplyCloudExternalMetadata(CreateExternalMetadataSnapshot(
+        game.Id,
+        CreateExternalMetadata() with { SubjectId = "99999", Summary = "Different subject" },
+        first.AddHours(4)));
+
+    AssertEqual(ExternalMetadataMergeStatus.Conflict, result.Status);
+    AssertTrue(result.Message.Contains("99999", StringComparison.Ordinal),
+        "Conflicts should tell the sync layer which cloud subject was rejected.");
+    AssertEqual("12345", service.GetExternalMetadata(game.Id)?.SubjectId);
+}
+
+static void Stage2_SqlitePersistsExternalMetadataConflicts()
+{
+    using var database = TempDatabase.Create();
+    var service = new SqliteGameLibraryService(database.Path);
+    var game = service.AddGame(CreateAddGameRequest("Stage 2 Conflict"));
+    var local = CreateExternalMetadata() with { SubjectId = "local-subject", Summary = "Local summary" };
+    var cloud = CreateExternalMetadata() with { SubjectId = "cloud-subject", Summary = "Cloud summary" };
+
+    service.ApplyCloudExternalMetadata(CreateExternalMetadataSnapshot(
+        game.Id,
+        local,
+        new DateTime(2026, 6, 7, 8, 0, 0, DateTimeKind.Utc)));
+    var result = service.ApplyCloudExternalMetadata(CreateExternalMetadataSnapshot(
+        game.Id,
+        cloud,
+        new DateTime(2026, 6, 7, 12, 0, 0, DateTimeKind.Utc)));
+
+    AssertEqual(ExternalMetadataMergeStatus.Conflict, result.Status);
+    var conflict = new SqliteGameLibraryService(database.Path).GetExternalMetadataConflict(game.Id);
+    AssertTrue(conflict is not null, "External metadata conflicts should survive app restarts.");
+    AssertEqual(game.Id, conflict!.GameId);
+    AssertEqual("local-subject", conflict.LocalSnapshot.SubjectId);
+    AssertEqual("cloud-subject", conflict.CloudSnapshot.SubjectId);
+    AssertTrue(!conflict.Reason.Contains("Local summary", StringComparison.Ordinal)
+        && !conflict.Reason.Contains("Cloud summary", StringComparison.Ordinal),
+        "Conflict reasons should avoid long imported summaries and keep sync logs compact.");
+}
+
+static void SqliteUnlinksExternalMetadataWithoutRemovingSnapshot()
+{
+    using var database = TempDatabase.Create();
+    var service = new SqliteGameLibraryService(database.Path);
+    var added = service.AddGame(CreateAddGameRequest("Unlink Game"));
+    service.UpdateExternalMetadata(added.Id, CreateExternalMetadata());
+
+    service.UpdateExternalMetadata(added.Id, CreateExternalMetadata() with { IsLinked = false });
+
+    var metadata = new SqliteGameLibraryService(database.Path).GetExternalMetadata(added.Id);
+    AssertTrue(metadata is not null, "Unlinking should preserve the imported metadata snapshot.");
+    AssertTrue(!metadata!.IsLinked, "Unlinking should disable the online association.");
+    AssertEqual("Imported summary", metadata.Summary);
+}
+
+static void SqlitePersistsBangumiCollectionState()
+{
+    using var database = TempDatabase.Create();
+    var service = new SqliteGameLibraryService(database.Path);
+    var added = service.AddGame(CreateAddGameRequest("Collection Game"));
+    var remoteUpdated = new DateTime(2026, 6, 7, 7, 30, 0, DateTimeKind.Utc);
+    service.SaveBangumiCollectionState(new BangumiCollectionState(
+        added.Id,
+        "12345",
+        "firefly-player",
+        BangumiCollectionType.Doing,
+        8,
+        "Playing now",
+        remoteUpdated,
+        remoteUpdated.AddMinutes(1)));
+
+    var state = new SqliteGameLibraryService(database.Path).GetBangumiCollectionState(added.Id);
+    AssertTrue(state is not null, "Expected the cached Bangumi collection state to reload.");
+    AssertEqual(BangumiCollectionType.Doing, state!.Type);
+    AssertEqual(8, state.Rating);
+    AssertEqual("Playing now", state.Comment);
+}
+
+static void InMemoryMetadataUpdateAdvancesTimestamp()
+{
+    var service = new InMemoryGameLibraryService();
+    var added = service.AddGame(CreateAddGameRequest("Memory Metadata Game"));
+
+    var updated = service.UpdateExternalMetadata(added.Id, CreateExternalMetadata());
+
+    AssertTrue(updated.UpdatedAtUtc > added.UpdatedAtUtc,
+        "Adding external metadata should advance the game metadata timestamp.");
+    AssertEqual("12345", service.GetExternalMetadata(added.Id)?.SubjectId);
+}
+
+static void BangumiAccountStoreEncryptsToken()
+{
+    using var workspace = TempDirectory.Create();
+    var path = System.IO.Path.Combine(workspace.Path, "bangumi-account.json");
+    var store = new JsonBangumiAccountStore(path, new TestSecretProtector());
+    var account = new BangumiAccount(
+        "firefly-player",
+        "Firefly",
+        "https://lain.bgm.tv/pic/user/l/icon.jpg",
+        "secret-token",
+        new DateTime(2026, 6, 7, 8, 0, 0, DateTimeKind.Utc));
+
+    store.Save(account);
+
+    var json = File.ReadAllText(path);
+    AssertTrue(!json.Contains("secret-token", StringComparison.Ordinal),
+        "Bangumi access tokens must not be written in plaintext.");
+    AssertEqual(account, store.Load());
+    store.Clear();
+    AssertTrue(!File.Exists(path), "Signing out should remove the local Bangumi account file.");
+}
+
+static void BangumiAccountStorePersistsReconnectRequirement()
+{
+    using var workspace = TempDirectory.Create();
+    var path = System.IO.Path.Combine(workspace.Path, "bangumi-account.json");
+    var store = new JsonBangumiAccountStore(path, new TestSecretProtector());
+    var account = new BangumiAccount(
+        "firefly-player",
+        "Firefly",
+        string.Empty,
+        "secret-token",
+        DateTime.UtcNow,
+        RequiresReconnect: true);
+
+    store.Save(account);
+
+    AssertTrue(store.Load()!.RequiresReconnect, "Rejected Bangumi credentials should remain marked for reconnection.");
+}
+
+static void BangumiApiSearchesGameSubjects()
+{
+    var handler = new QueuedHttpMessageHandler(
+        JsonResponse("""
+        {"data":[{"id":12345,"type":4,"name":"Original","name_cn":"中文名","date":"2026-01-02","summary":"Summary","images":{"large":"https://lain.bgm.tv/cover.jpg"}}]}
+        """));
+    var client = new BangumiApiClient(() => new HttpClient(handler, false));
+
+    var results = client.SearchGamesAsync("test game").GetAwaiter().GetResult();
+
+    AssertEqual(1, results.Count);
+    AssertEqual("12345", results[0].SubjectId);
+    AssertEqual("中文名", results[0].LocalizedName);
+    AssertEqual(HttpMethod.Post, handler.Requests.Single().Method);
+    AssertTrue(handler.RequestBodies.Single().Contains("\"type\":[4]", StringComparison.Ordinal),
+        "Bangumi search should restrict results to game subjects.");
+}
+
+static void BangumiApiReadsSubjectIdAliasesFromSearchResults()
+{
+    var handler = new QueuedHttpMessageHandler(
+        JsonResponse("""
+        {"data":[{"subject_id":24680,"type":4,"name":"Alias Original","name_cn":"Alias Localized","date":"2026-06-17","summary":"Alias summary","images":{}}]}
+        """));
+    var client = new BangumiApiClient(() => new HttpClient(handler, false));
+
+    var results = client.SearchGamesAsync("alias game").GetAwaiter().GetResult();
+
+    AssertEqual(1, results.Count);
+    AssertEqual("24680", results[0].SubjectId);
+}
+
+static void BangumiApiNormalizesProtocolRelativeImageUrls()
+{
+    var handler = new QueuedHttpMessageHandler(
+        JsonResponse("""
+        {"data":[{"id":12345,"type":4,"name":"Cover","name_cn":"封面测试","date":"2026-06-17","summary":"Summary","images":{"large":"//lain.bgm.tv/pic/cover/l/example.jpg"}}]}
+        """));
+    var client = new BangumiApiClient(() => new HttpClient(handler, false));
+
+    var results = client.SearchGamesAsync("cover").GetAwaiter().GetResult();
+
+    AssertEqual("https://lain.bgm.tv/pic/cover/l/example.jpg", results[0].ImageUrl);
+}
+
+static void BangumiApiUpgradesLegacyHttpImageUrls()
+{
+    var handler = new QueuedHttpMessageHandler(
+        JsonResponse("""
+        {"data":[{"id":172612,"type":4,"name":"千恋＊万花","name_cn":"千恋＊万花","date":"2016-07-29","summary":"Summary","images":{"large":"http://lain.bgm.tv/pic/cover/l/example.jpg"}}]}
+        """));
+    var client = new BangumiApiClient(() => new HttpClient(handler, false));
+
+    var results = client.SearchGamesAsync("千恋＊万花").GetAwaiter().GetResult();
+
+    AssertEqual("https://lain.bgm.tv/pic/cover/l/example.jpg", results[0].ImageUrl);
+}
+
+static void BangumiApiRanksExactTitleMatchesFirst()
+{
+    var handler = new QueuedHttpMessageHandler(
+        JsonResponse("""
+        {"data":[
+            {"id":100,"type":4,"name":"Related","name_cn":"冬日树下的回忆","date":"2023-05-22","summary":"Related","images":{}},
+            {"id":200,"type":4,"name":"Exact","name_cn":"冬日狂想曲","date":"2024-01-01","summary":"Exact","images":{}}
+        ]}
+        """));
+    var client = new BangumiApiClient(() => new HttpClient(handler, false));
+
+    var results = client.SearchGamesAsync("冬日狂想曲").GetAwaiter().GetResult();
+
+    AssertEqual("200", results[0].SubjectId);
+}
+
+static void BangumiApiIgnoresTitleSeparatorSymbolsForRanking()
+{
+    var handler = new QueuedHttpMessageHandler(
+        JsonResponse("""
+        {"data":[
+            {"id":100,"type":4,"name":"Trial","name_cn":"千恋万花 体验版","date":"2016-07-29","summary":"Trial","images":{}},
+            {"id":200,"type":4,"name":"Senren Banka","name_cn":"千恋＊万花","date":"2016-07-29","summary":"Main game","images":{}}
+        ]}
+        """));
+    var client = new BangumiApiClient(() => new HttpClient(handler, false));
+
+    var results = client.SearchGamesAsync("千恋万花").GetAwaiter().GetResult();
+
+    AssertEqual("200", results[0].SubjectId);
+}
+
+static void Stage3_BangumiApiRanksMultiKeywordTitleMatches()
+{
+    var handler = new QueuedHttpMessageHandler(
+        JsonResponse("""
+        {"data":[
+            {"id":100,"type":4,"name":"Other Banka","name_cn":"相关作品","date":"2018-01-01","summary":"Related","images":{}},
+            {"id":200,"type":4,"name":"Senren＊Banka","name_cn":"千恋＊万花","date":"2016-07-29","summary":"Main game","images":{}}
+        ]}
+        """));
+    var client = new BangumiApiClient(() => new HttpClient(handler, false));
+
+    var results = client.SearchGamesAsync("senren banka").GetAwaiter().GetResult();
+
+    AssertEqual("200", results[0].SubjectId);
+}
+
+static void BangumiApiFallsBackToLegacySubjectSearchWhenModernSearchMissesExactTitle()
+{
+    var handler = new QueuedHttpMessageHandler(
+        JsonResponse("""
+        {"data":[{"id":100,"type":4,"name":"Related","name_cn":"冬日树下的回忆","date":"2023-05-22","summary":"Related","images":{}}]}
+        """),
+        JsonResponse("""
+        {"results":1,"list":[{"id":200,"type":4,"name":"Exact","name_cn":"冬日狂想曲","air_date":"2024-01-01","summary":"Exact","images":{}}]}
+        """));
+    var client = new BangumiApiClient(() => new HttpClient(handler, false));
+
+    var results = client.SearchGamesAsync("冬日狂想曲").GetAwaiter().GetResult();
+
+    AssertEqual("200", results[0].SubjectId);
+    AssertEqual(2, handler.Requests.Count);
+    AssertEqual(HttpMethod.Get, handler.Requests[1].Method);
+    AssertTrue(handler.Requests[1].RequestUri?.AbsolutePath.Contains("/search/subject/", StringComparison.Ordinal) == true,
+        "When modern search misses the exact title, the client should ask Bangumi's legacy subject search too.");
+}
+
+static void BangumiApiMapsDetailsAndWritesCollection()
+{
+    var handler = new QueuedHttpMessageHandler(
+        JsonResponse("""
+        {"id":12345,"type":4,"name":"Original","name_cn":"中文名","date":"2026-01-02","summary":"Summary","images":{"large":"https://lain.bgm.tv/cover.jpg"},"tags":[{"name":"ADV"}],"infobox":[{"key":"开发商","value":"Studio"},{"key":"发行商","value":[{"v":"Publisher"}]}]}
+        """),
+        new HttpResponseMessage(HttpStatusCode.Accepted));
+    var client = new BangumiApiClient(() => new HttpClient(handler, false));
+    var account = new BangumiAccount("firefly-player", "Firefly", "", "secret-token", DateTime.UtcNow);
+
+    var metadata = client.GetGameDetailsAsync("12345").GetAwaiter().GetResult();
+    client.SaveCollectionAsync(account, new BangumiCollectionState(
+        "game-id",
+        "12345",
+        account.Username,
+        BangumiCollectionType.Collect,
+        9,
+        "Great",
+        null,
+        DateTime.UtcNow)).GetAwaiter().GetResult();
+
+    AssertEqual("Studio", metadata?.Developer);
+    AssertEqual("Publisher", metadata?.Publisher);
+    AssertEqual("ADV", metadata?.Tags.Single());
+    AssertEqual(HttpMethod.Post, handler.Requests[1].Method);
+    AssertEqual("Bearer", handler.Requests[1].Headers.Authorization?.Scheme);
+    AssertTrue(handler.RequestBodies[1].Contains("\"type\":2", StringComparison.Ordinal),
+        "Collection writes should use Bangumi's numeric collection type.");
+}
+
+static void BangumiApiRetriesTransientSubjectNotFound()
+{
+    var handler = new QueuedHttpMessageHandler(
+        new HttpResponseMessage(HttpStatusCode.NotFound),
+        JsonResponse("""
+        {"id":172612,"type":4,"name":"千恋＊万花","name_cn":"千恋＊万花","date":"2016-07-29","summary":"完整简介","images":{"large":"https://lain.bgm.tv/cover.jpg"},"tags":[{"name":"ADV"}],"infobox":[]}
+        """));
+    var client = new BangumiApiClient(() => new HttpClient(handler, false));
+
+    var metadata = client.GetGameDetailsAsync("172612").GetAwaiter().GetResult();
+
+    AssertEqual("172612", metadata?.SubjectId);
+    AssertEqual("完整简介", metadata?.Summary);
+    AssertEqual(2, handler.Requests.Count);
+}
+
+static void BangumiApiRetriesOneServerFailure()
+{
+    var handler = new QueuedHttpMessageHandler(
+        new HttpResponseMessage(HttpStatusCode.InternalServerError),
+        JsonResponse("""{"data":[]}"""));
+    var client = new BangumiApiClient(() => new HttpClient(handler, false));
+
+    var results = client.SearchGamesAsync("retry").GetAwaiter().GetResult();
+
+    AssertEqual(0, results.Count);
+    AssertEqual(2, handler.Requests.Count);
+}
+
+static void BangumiApiReportsRateLimitAndAuthenticationErrors()
+{
+    var rateLimit = new HttpResponseMessage(HttpStatusCode.TooManyRequests);
+    rateLimit.Headers.RetryAfter = new System.Net.Http.Headers.RetryConditionHeaderValue(TimeSpan.FromSeconds(90));
+    var rateClient = new BangumiApiClient(() => new HttpClient(new QueuedHttpMessageHandler(rateLimit), false));
+    var authClient = new BangumiApiClient(() => new HttpClient(
+        new QueuedHttpMessageHandler(new HttpResponseMessage(HttpStatusCode.Unauthorized)), false));
+
+    BangumiApiException? rateError = null;
+    BangumiApiException? authError = null;
+    try
+    {
+        rateClient.SearchGamesAsync("limited").GetAwaiter().GetResult();
+    }
+    catch (BangumiApiException ex)
+    {
+        rateError = ex;
+    }
+
+    try
+    {
+        authClient.GetCurrentUserAsync("invalid-token").GetAwaiter().GetResult();
+    }
+    catch (BangumiApiException ex)
+    {
+        authError = ex;
+    }
+
+    AssertTrue(rateError?.Message.Contains("90", StringComparison.Ordinal) == true,
+        "Rate-limit errors should include the retry delay.");
+    AssertTrue(authError?.IsAuthenticationFailure == true,
+        "Unauthorized responses should be identifiable as authentication failures.");
+}
+
+static void BangumiApiReportsRequestTimeout()
+{
+    var client = new BangumiApiClient(
+        () => new HttpClient(new DelayedHttpMessageHandler(TimeSpan.FromSeconds(1)), false),
+        TimeSpan.FromMilliseconds(20));
+    BangumiApiException? error = null;
+
+    try
+    {
+        client.SearchGamesAsync("timeout").GetAwaiter().GetResult();
+    }
+    catch (BangumiApiException ex)
+    {
+        error = ex;
+    }
+
+    AssertTrue(error?.Message.Contains("超时", StringComparison.Ordinal) == true,
+        "Timed-out Bangumi requests should show a clear timeout message.");
+}
+
+static void BangumiApiUsesPatchForExistingCollection()
+{
+    var handler = new QueuedHttpMessageHandler(new HttpResponseMessage(HttpStatusCode.Accepted));
+    var client = new BangumiApiClient(() => new HttpClient(handler, false));
+    var account = new BangumiAccount("firefly-player", "Firefly", "", "secret-token", DateTime.UtcNow);
+    var state = new BangumiCollectionState(
+        "game-id",
+        "12345",
+        account.Username,
+        BangumiCollectionType.Doing,
+        0,
+        string.Empty,
+        DateTime.UtcNow,
+        DateTime.UtcNow);
+
+    client.SaveCollectionAsync(account, state, isExistingCollection: true).GetAwaiter().GetResult();
+
+    AssertEqual(HttpMethod.Patch, handler.Requests.Single().Method);
+}
+
+static void BangumiMetadataProviderCachesSearchResults()
+{
+    var client = new CountingBangumiApiClient();
+    var provider = new BangumiGameMetadataProvider(client);
+
+    var first = provider.SearchAsync("  Test Game  ").GetAwaiter().GetResult();
+    var second = provider.SearchAsync("test game").GetAwaiter().GetResult();
+
+    AssertEqual(1, client.SearchCalls);
+    AssertEqual(first.Single().SubjectId, second.Single().SubjectId);
+}
+
+static void Stage3_MetadataSearchResultExposesAuxiliaryInfo()
+{
+    var result = new GameMetadataSearchResult(
+        "bangumi",
+        "12345",
+        "Original Title",
+        "本地化标题",
+        "2026-06-17",
+        string.Empty,
+        "Summary");
+
+    AssertTrue(result.AuxiliaryInfo.Contains("Original Title", StringComparison.Ordinal)
+        && result.AuxiliaryInfo.Contains("2026-06-17", StringComparison.Ordinal)
+        && result.AuxiliaryInfo.Contains("bangumi", StringComparison.OrdinalIgnoreCase),
+        "Search results should expose original title, release date, and provider in one compact auxiliary line.");
+}
+
+static void MetadataImportOptionsMergeOnlySelectedFields()
+{
+    var existing = CreateExternalMetadata() with
+    {
+        SubjectId = "old",
+        OriginalName = "Local original",
+        LocalizedName = "Local name",
+        Summary = "Local summary",
+        ReleaseDate = "2020-01-01",
+        Developer = "Local developer",
+        Publisher = "Local publisher",
+        Tags = ["Local tag"],
+        ImageUrl = "https://example.com/local.jpg"
+    };
+    var incoming = CreateExternalMetadata() with
+    {
+        SubjectId = "new",
+        OriginalName = "Remote original",
+        LocalizedName = "Remote name",
+        Summary = "Remote summary",
+        ReleaseDate = "2026-06-08",
+        Developer = "Remote developer",
+        Publisher = "Remote publisher",
+        Tags = ["Remote tag"],
+        ImageUrl = "https://example.com/remote.jpg"
+    };
+    var options = new MetadataImportOptions(
+        ImportName: false,
+        ImportCover: false,
+        ImportSummary: true,
+        ImportReleaseDate: false,
+        ImportDeveloper: true,
+        ImportPublisher: false,
+        ImportTags: true);
+
+    var merged = options.Merge(existing, incoming);
+
+    AssertEqual("new", merged.SubjectId);
+    AssertEqual("Local name", merged.LocalizedName);
+    AssertEqual("https://example.com/local.jpg", merged.ImageUrl);
+    AssertEqual("Remote summary", merged.Summary);
+    AssertEqual("2020-01-01", merged.ReleaseDate);
+    AssertEqual("Remote developer", merged.Developer);
+    AssertEqual("Local publisher", merged.Publisher);
+    AssertEqual("Remote tag", merged.Tags.Single());
+}
+
+static void RemoteImageCacheValidatesImageBytes()
+{
+    using var workspace = TempDirectory.Create();
+    var validPng = Convert.FromBase64String(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+    var handler = new QueuedHttpMessageHandler(
+        new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(validPng) },
+        new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("not an image") });
+    var service = new RemoteImageCacheService(workspace.Path, () => new HttpClient(handler, false));
+
+    var cached = service.DownloadAsync("bangumi", "12345", "https://lain.bgm.tv/cover").GetAwaiter().GetResult();
+    var invalid = service.DownloadAsync("bangumi", "67890", "https://lain.bgm.tv/not-image").GetAwaiter().GetResult();
+
+    AssertTrue(cached is not null && File.Exists(cached), "A valid remote PNG should be cached.");
+    AssertEqual<string?>(null, invalid);
+}
+
+static void RemoteImageCacheRejectsHeaderOnlyImage()
+{
+    using var workspace = TempDirectory.Create();
+    var headerOnly = new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3 };
+    var handler = new QueuedHttpMessageHandler(
+        new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(headerOnly) });
+    var service = new RemoteImageCacheService(workspace.Path, () => new HttpClient(handler, false));
+
+    var cached = service.DownloadAsync("bangumi", "header-only", "https://lain.bgm.tv/header-only").GetAwaiter().GetResult();
+
+    AssertEqual<string?>(null, cached);
 }
 
 static void SqlitePersistsDeletedGame()
@@ -817,6 +2231,54 @@ static void ManagementPageUsesSharedSelectionAndDangerStyles()
         "Shared management styles should be defined in the application style dictionary.");
 }
 
+static void Stage3_ManagementBatchMetadataMatchWaitsForConfirmation()
+{
+    var library = new InMemoryGameLibraryService();
+    var game = library.AddGame(CreateAddGameRequest("Batch Match"));
+    var provider = new FixedMetadataProvider(CreateExternalMetadata() with { SubjectId = "batch-subject" });
+    var viewModel = new ManageGameLibraryViewModel(
+        [game],
+        _ => { },
+        () => { },
+        library,
+        provider);
+
+    ((GameManager.App.Commands.AsyncRelayCommand)viewModel.MatchUnlinkedMetadataCommand).ExecuteAsync(null).GetAwaiter().GetResult();
+
+    var item = viewModel.Games.Single();
+    AssertTrue(item.MetadataMatchResult is not null, "Batch matching should keep a candidate for user confirmation.");
+    AssertTrue(item.MetadataMatchStatusText.Contains("待确认", StringComparison.Ordinal),
+        "Batch matching should clearly wait for confirmation.");
+    AssertTrue(library.GetExternalMetadata(game.Id) is null,
+        "Batch matching must not link metadata before the user applies selected candidates.");
+}
+
+static void Stage3_ManagementBatchMetadataApplyLinksSelectedGames()
+{
+    var library = new InMemoryGameLibraryService();
+    var game = library.AddGame(CreateAddGameRequest("Batch Apply"));
+    var provider = new FixedMetadataProvider(CreateExternalMetadata() with
+    {
+        SubjectId = "batch-apply-subject",
+        Summary = "Batch applied summary"
+    });
+    var viewModel = new ManageGameLibraryViewModel(
+        [game],
+        _ => { },
+        () => { },
+        library,
+        provider);
+
+    ((GameManager.App.Commands.AsyncRelayCommand)viewModel.MatchUnlinkedMetadataCommand).ExecuteAsync(null).GetAwaiter().GetResult();
+    viewModel.Games.Single().IsSelected = true;
+    ((GameManager.App.Commands.AsyncRelayCommand)viewModel.ApplyMatchedMetadataCommand).ExecuteAsync(null).GetAwaiter().GetResult();
+
+    AssertEqual("batch-apply-subject", library.GetExternalMetadata(game.Id)?.SubjectId);
+    AssertEqual("Batch applied summary", viewModel.Games.Single().Game.ExternalMetadata?.Summary);
+    AssertTrue(viewModel.BatchMetadataStatusText.Contains("已应用", StringComparison.Ordinal),
+        "Applying selected candidates should report a compact batch result.");
+}
+
 static void MainWindowUsesModernSideNavigationShell()
 {
     var xaml = File.ReadAllText(System.IO.Path.Combine("GameManager.App", "MainWindow.xaml"));
@@ -971,6 +2433,20 @@ static void AppDefinesSharedModernUiStyles()
         "Shared styles should define a side navigation button style.");
     AssertTrue(stylesXaml.Contains("x:Key=\"SectionCardStyle\"", StringComparison.Ordinal),
         "Shared styles should define section card containers.");
+}
+
+static void ModernComboBoxRendersArbitraryItemTemplates()
+{
+    var xaml = File.ReadAllText(System.IO.Path.Combine("GameManager.App", "Styles", "AppStyles.xaml"));
+
+    AssertTrue(xaml.Contains("Content=\"{TemplateBinding Content}\"", StringComparison.Ordinal)
+        && xaml.Contains("ContentTemplate=\"{TemplateBinding ContentTemplate}\"", StringComparison.Ordinal),
+        "Combo box items should render their configured ItemTemplate or DisplayMemberPath.");
+    AssertTrue(xaml.Contains("SelectionBoxItemTemplate", StringComparison.Ordinal),
+        "The selected combo box value should render with its configured template.");
+    AssertTrue(!xaml.Contains("Content.Label, RelativeSource={RelativeSource TemplatedParent}", StringComparison.Ordinal)
+        && !xaml.Contains("SelectedItem.Label, RelativeSource={RelativeSource TemplatedParent}", StringComparison.Ordinal),
+        "The shared combo box must not assume every item exposes a Label property.");
 }
 
 static void LocalSaveBackupCreatesZipFromSaveDirectory()
@@ -1490,6 +2966,48 @@ static void WebDavManualSyncUploadsUserDatabase()
     AssertEqual("local-library-db", handler.UploadedText["https://dav.jianguoyun.com/dav/FireflyGameManager/metadata/app.db"]);
 }
 
+static void WebDavUserDatabaseUploadExcludesBangumiCollectionCache()
+{
+    using var database = TempDatabase.Create();
+    using var workspace = TempDirectory.Create();
+    var library = new SqliteGameLibraryService(database.Path);
+    var game = library.AddGame(CreateAddGameRequest("Private Collection"));
+    library.UpdateExternalMetadata(game.Id, CreateExternalMetadata());
+    library.SaveBangumiCollectionState(new BangumiCollectionState(
+        game.Id,
+        "12345",
+        "firefly-player",
+        BangumiCollectionType.Doing,
+        0,
+        string.Empty,
+        null,
+        DateTime.UtcNow));
+    var handler = new RecordingUploadHttpMessageHandler();
+    var service = new WebDavManualSyncService(() => new HttpClient(handler));
+
+    var result = service.UploadUserDataAsync(CreateWebDavSettings(), database.Path).GetAwaiter().GetResult();
+
+    AssertTrue(result.Success, result.Message);
+    var remotePath = "https://dav.jianguoyun.com/dav/FireflyGameManager/metadata/app.db";
+    var uploadedPath = System.IO.Path.Combine(workspace.Path, "uploaded.db");
+    File.WriteAllBytes(uploadedPath, handler.UploadedBytes[remotePath]);
+    using var connection = new SqliteConnection(new SqliteConnectionStringBuilder
+    {
+        DataSource = uploadedPath,
+        Pooling = false
+    }.ToString());
+    connection.Open();
+    using var command = connection.CreateCommand();
+    command.CommandText = "SELECT COUNT(*) FROM bangumi_collection_states;";
+    AssertEqual(0L, (long)command.ExecuteScalar()!);
+    command.CommandText = "SELECT COUNT(*) FROM game_external_metadata;";
+    AssertEqual(0L, (long)command.ExecuteScalar()!);
+    AssertTrue(library.GetBangumiCollectionState(game.Id) is not null,
+        "Sanitizing the upload must not delete the local collection cache.");
+    AssertTrue(library.GetExternalMetadata(game.Id) is not null,
+        "Stage A metadata should remain local until Stage C WebDAV sync is implemented.");
+}
+
 static void WebDavManualSyncUploadsSaveBackupZips()
 {
     using var workspace = TempDirectory.Create();
@@ -1860,6 +3378,83 @@ static void WebDavV2PublishesPerGameAndPerDeviceData()
         "Global metadata must not contain machine-specific absolute paths.");
 }
 
+static void StageC_WebDavV2UploadsExternalMetadataSnapshot()
+{
+    var handler = new RecordingUploadHttpMessageHandler();
+    var service = new WebDavGameSyncService(() => new HttpClient(handler));
+    var game = new Game(
+        "stage-c-upload",
+        "Stage C Upload",
+        @"D:\Games\StageC\game.exe",
+        @"D:\Games\StageC",
+        @"D:\Saves\StageC",
+        null,
+        TimeSpan.Zero,
+        null,
+        updatedAtUtc: new DateTime(2026, 6, 7, 9, 0, 0, DateTimeKind.Utc),
+        externalMetadata: CreateExternalMetadata() with { Summary = "Synced public metadata" });
+
+    var result = service.UploadGameAsync(
+        new WebDavSettings("https://dav.example/", "player@example.com", "app-password", "Firefly"),
+        game,
+        [],
+        "machine-one",
+        null,
+        null).GetAwaiter().GetResult();
+
+    AssertTrue(result.Success, result.Message);
+    var externalJson = handler.UploadedText.Single(pair =>
+        pair.Key.EndsWith("/v2/games/stage-c-upload/external-metadata.json", StringComparison.Ordinal)).Value;
+    AssertUploadedTextDoesNotContainSecrets(externalJson);
+    AssertTrue(externalJson.Contains("\"SchemaVersion\": 1", StringComparison.Ordinal),
+        "External metadata snapshots should be versioned independently from game metadata.");
+    AssertTrue(externalJson.Contains("\"Provider\": \"bangumi\"", StringComparison.Ordinal)
+        && externalJson.Contains("\"SubjectId\": \"12345\"", StringComparison.Ordinal)
+        && externalJson.Contains("\"Summary\": \"Synced public metadata\"", StringComparison.Ordinal),
+        "External metadata snapshots should include the imported public Bangumi fields.");
+    AssertTrue(!handler.UploadedText.Single(pair => pair.Key.EndsWith("/metadata.json", StringComparison.Ordinal)).Value
+            .Contains("Synced public metadata", StringComparison.Ordinal),
+        "Existing metadata.json should keep its narrow game-info contract for old-client compatibility.");
+}
+
+static void StageC_WebDavV2DownloadsExternalMetadataSnapshot()
+{
+    var handler = new RecordingUploadHttpMessageHandler();
+    handler.RespondWithText(
+        "GET",
+        "https://dav.example/Firefly/v2/games/stage-c-download/external-metadata.json",
+        """
+        {
+          "SchemaVersion": 1,
+          "GameId": "stage-c-download",
+          "Provider": "bangumi",
+          "SubjectId": "12345",
+          "IsLinked": true,
+          "OriginalName": "Original Name",
+          "LocalizedName": "Localized Name",
+          "Summary": "Downloaded summary",
+          "ReleaseDate": "2026-06-07",
+          "Developer": "Studio",
+          "Publisher": "Publisher",
+          "Tags": [ "Adventure" ],
+          "ImageUrl": "https://lain.bgm.tv/pic/cover/l/example.jpg",
+          "SubjectUrl": "https://bgm.tv/subject/12345",
+          "SourceUpdatedAtUtc": "2026-06-07T06:00:00Z",
+          "SnapshotUpdatedAtUtc": "2026-06-07T10:00:00Z"
+        }
+        """);
+    var service = new WebDavGameSyncService(() => new HttpClient(handler));
+
+    var snapshot = service.DownloadExternalMetadataAsync(
+        new WebDavSettings("https://dav.example/", "user", "password", "Firefly"),
+        "stage-c-download").GetAwaiter().GetResult();
+
+    AssertTrue(snapshot is not null, "Expected Stage C external metadata to download.");
+    AssertEqual("stage-c-download", snapshot!.GameId);
+    AssertEqual("Downloaded summary", snapshot.Summary);
+    AssertEqual(new DateTime(2026, 6, 7, 10, 0, 0, DateTimeKind.Utc), snapshot.SnapshotUpdatedAtUtc);
+}
+
 static void WebDavV2PreservesRemotePlaySessionIndex()
 {
     var handler = new RecordingUploadHttpMessageHandler();
@@ -2130,6 +3725,39 @@ static void StartupCloudMetadataPullMergesGameList()
     AssertEqual("Startup Cloud Game", game.Name);
     AssertEqual(@"D:\Games\Startup\game.exe", game.ExecutablePath);
     AssertEqual(@"C:\Saves\Startup", game.SavePath);
+}
+
+static void StageC_StartupCloudMetadataPullAppliesExternalMetadata()
+{
+    using var database = TempDatabase.Create();
+    using var workspace = TempDirectory.Create();
+    var library = new SqliteGameLibraryService(database.Path, "machine-one");
+    var gameSync = new StartupPullGameSyncService(
+    [
+        new GameCloudMetadata
+        {
+            Id = "stage-c-pull",
+            Name = "Stage C Pull",
+            UpdatedAtUtc = new DateTime(2026, 6, 7, 9, 0, 0, DateTimeKind.Utc)
+        }
+    ]);
+    gameSync.ExternalMetadata["stage-c-pull"] = CreateExternalMetadataSnapshot(
+        "stage-c-pull",
+        CreateExternalMetadata() with { Summary = "Pulled external metadata" },
+        new DateTime(2026, 6, 7, 10, 0, 0, DateTimeKind.Utc));
+    var service = new WebDavCloudMetadataPullService(
+        library,
+        gameSync,
+        new InMemorySyncLogService(),
+        "machine-one",
+        workspace.Path);
+
+    var result = service.PullAsync(CreateWebDavSettings()).GetAwaiter().GetResult();
+
+    AssertTrue(result.Success, result.Message);
+    AssertEqual("Pulled external metadata", library.GetExternalMetadata("stage-c-pull")?.Summary);
+    AssertEqual(new DateTime(2026, 6, 7, 10, 0, 0, DateTimeKind.Utc),
+        library.GetExternalMetadataSnapshot("stage-c-pull")?.SnapshotUpdatedAtUtc);
 }
 
 static void StartupCloudMetadataPullIsolatesPerGameFailures()
@@ -2664,10 +4292,11 @@ static void SettingsControlsUseModernSharedStyles()
         "Settings dropdowns should use a modern shared combo box style.");
     AssertTrue(styles.Contains("x:Key=\"ModernScrollBarStyle\"", StringComparison.Ordinal),
         "Settings should use a modern shared scrollbar style.");
-    AssertTrue(styles.Contains("SelectedItem.Label", StringComparison.Ordinal),
-        "The custom combo box template should display the selected option label instead of the option object.");
-    AssertTrue(styles.Contains("Content.Label", StringComparison.Ordinal),
-        "The custom combo box item template should display each option label instead of the option object.");
+    AssertTrue(styles.Contains("SelectionBoxItemTemplate", StringComparison.Ordinal)
+        && styles.Contains("ContentTemplate=\"{TemplateBinding ContentTemplate}\"", StringComparison.Ordinal),
+        "The custom combo box should render the selected value and items through their configured templates.");
+    AssertTrue(xaml.Contains("DisplayMemberPath=\"Label\"", StringComparison.Ordinal),
+        "Settings dropdowns should explicitly display their option labels.");
     AssertTrue(xaml.Contains("Style=\"{StaticResource ModernComboBoxStyle}\"", StringComparison.Ordinal),
         "Settings dropdowns such as close behavior and language should use the modern combo box style.");
     AssertTrue(xaml.Contains("Style=\"{StaticResource SettingsOptionRowStyle}\"", StringComparison.Ordinal)
@@ -2873,6 +4502,7 @@ static void LocalDataMaintenanceExportsImportsAndClearsInvalidFiles()
     Directory.CreateDirectory(invalidDirectory);
     Directory.CreateDirectory(coverCache);
     File.WriteAllText(System.IO.Path.Combine(dataDirectory, "app.db"), "database");
+    File.WriteAllText(System.IO.Path.Combine(dataDirectory, "bangumi-account.json"), "encrypted-token");
     CreateZipWithFile(System.IO.Path.Combine(validDirectory, "valid.zip"), "save.txt", "save");
     CreateZipWithFile(System.IO.Path.Combine(invalidDirectory, "invalid.zip"), "save.txt", "save");
     File.WriteAllText(System.IO.Path.Combine(coverCache, "cover.jpg"), "cover");
@@ -2880,6 +4510,11 @@ static void LocalDataMaintenanceExportsImportsAndClearsInvalidFiles()
     var service = new LocalDataMaintenanceService(dataDirectory);
 
     service.Export(exportPath);
+    using (var export = ZipFile.OpenRead(exportPath))
+    {
+        AssertTrue(export.Entries.All(entry => !string.Equals(entry.FullName, "bangumi-account.json", StringComparison.OrdinalIgnoreCase)),
+            "Local data exports must exclude the Bangumi account token file.");
+    }
     File.Delete(System.IO.Path.Combine(dataDirectory, "app.db"));
     service.Import(exportPath);
     var removed = service.ClearInvalidBackups(["valid-id"]);
@@ -3025,6 +4660,7 @@ static void SqlitePathOnlyEditKeepsMetadataTimestamp()
     using var database = TempDatabase.Create();
     var service = new SqliteGameLibraryService(database.Path);
     var game = service.AddGame(CreateAddGameRequest("Path Only"));
+    game = service.UpdateExternalMetadata(game.Id, CreateExternalMetadata());
 
     var updated = service.UpdateGame(new UpdateGameRequest(
         game.Id,
@@ -3037,7 +4673,8 @@ static void SqlitePathOnlyEditKeepsMetadataTimestamp()
         true,
         @"D:\Games\PathOnly",
         "PathOnly",
-        false));
+        false,
+        game.ExternalMetadata));
 
     AssertEqual(game.UpdatedAtUtc, updated.UpdatedAtUtc);
     AssertEqual(game.UpdatedAtUtc, new SqliteGameLibraryService(database.Path).GetGames().Single().UpdatedAtUtc);
@@ -3355,6 +4992,37 @@ static void WebDavFullSyncUploadsMetadataForDisabledSaveSyncGame()
     AssertEqual(0, manual.UploadedBackupFileNames.Count);
 }
 
+static void StageC_FullSyncUploadsExternalMetadataSnapshots()
+{
+    using var workspace = TempDirectory.Create();
+    var localDatabasePath = System.IO.Path.Combine(workspace.Path, "app.db");
+    var local = new SqliteGameLibraryService(localDatabasePath, "machine-one");
+    var game = local.AddGame(CreateAddGameRequest("Stage C Full Sync"));
+    local.UpdateExternalMetadata(game.Id, CreateExternalMetadata() with { Summary = "Full sync metadata" });
+    var remoteDatabasePath = System.IO.Path.Combine(workspace.Path, "remote.db");
+    _ = new SqliteGameLibraryService(remoteDatabasePath, "machine-one");
+    var remoteBackups = System.IO.Path.Combine(workspace.Path, "RemoteBackups");
+    Directory.CreateDirectory(remoteBackups);
+    var manual = new RecordingFullSyncManualSyncService(remoteDatabasePath, remoteBackups);
+    var gameSync = new ConfigurableWebDavGameSyncService();
+    var service = new WebDavFullSyncService(
+        manual,
+        new SqliteGameLibraryMergeService(),
+        new SaveBackupMergeService(),
+        () => System.IO.Path.Combine(workspace.Path, "temp"),
+        gameSync,
+        new SaveManifestService(),
+        "machine-one");
+
+    var result = service.SynchronizeAsync(
+        CreateWebDavSettings(), localDatabasePath, System.IO.Path.Combine(workspace.Path, "Backups")).GetAwaiter().GetResult();
+
+    AssertTrue(result.Success, result.Message);
+    var snapshot = gameSync.UploadedExternalMetadataSnapshots.Single(item => item.GameId == game.Id);
+    AssertEqual("Full sync metadata", snapshot.Summary);
+    AssertUploadedTextDoesNotContainSecrets(System.Text.Json.JsonSerializer.Serialize(snapshot));
+}
+
 static void AssertTrue(bool condition, string message)
 {
     if (!condition)
@@ -3391,6 +5059,61 @@ static GameManager.App.Models.AddGameRequest CreateAddGameRequest(string name)
         $@"D:\Images\{name}.jpg");
 }
 
+static ExternalGameMetadata CreateExternalMetadata()
+{
+    return new ExternalGameMetadata
+    {
+        Provider = "bangumi",
+        SubjectId = "12345",
+        IsLinked = true,
+        OriginalName = "Original Name",
+        LocalizedName = "Localized Name",
+        Summary = "Imported summary",
+        ReleaseDate = "2026-06-07",
+        Developer = "Studio",
+        Publisher = "Publisher",
+        Tags = ["Adventure"],
+        ImageUrl = "https://lain.bgm.tv/pic/cover/l/example.jpg",
+        SubjectUrl = "https://bgm.tv/subject/12345",
+        SourceUpdatedAtUtc = new DateTime(2026, 6, 7, 6, 0, 0, DateTimeKind.Utc)
+    };
+}
+
+static ExternalGameMetadataCloudSnapshot CreateExternalMetadataSnapshot(
+    string gameId,
+    ExternalGameMetadata metadata,
+    DateTime snapshotUpdatedAtUtc)
+{
+    return new ExternalGameMetadataCloudSnapshot
+    {
+        SchemaVersion = 1,
+        GameId = gameId,
+        Provider = metadata.Provider,
+        SubjectId = metadata.SubjectId,
+        IsLinked = metadata.IsLinked,
+        OriginalName = metadata.OriginalName,
+        LocalizedName = metadata.LocalizedName,
+        Summary = metadata.Summary,
+        ReleaseDate = metadata.ReleaseDate,
+        Developer = metadata.Developer,
+        Publisher = metadata.Publisher,
+        Tags = metadata.Tags,
+        ImageUrl = metadata.ImageUrl,
+        SubjectUrl = metadata.SubjectUrl,
+        SourceUpdatedAtUtc = metadata.SourceUpdatedAtUtc,
+        SnapshotUpdatedAtUtc = snapshotUpdatedAtUtc
+    };
+}
+
+static void AssertUploadedTextDoesNotContainSecrets(string text)
+{
+    foreach (var secret in new[] { "secret-token", "refresh-token", "app-password", "firefly-player" })
+    {
+        AssertTrue(!text.Contains(secret, StringComparison.Ordinal),
+            $"Uploaded Stage C metadata must not contain private account material: {secret}");
+    }
+}
+
 static GameManager.App.Models.Game CreateGame(string id, string name, string savePath)
 {
     return new GameManager.App.Models.Game(
@@ -3402,6 +5125,31 @@ static GameManager.App.Models.Game CreateGame(string id, string name, string sav
         null,
         TimeSpan.Zero,
         null);
+}
+
+static GameDetailViewModel CreateMetadataDetailViewModel(
+    Game game,
+    IGameLibraryService library,
+    IGameMetadataProvider provider,
+    IBangumiAccountStore? accountStore = null,
+    IBangumiApiClient? apiClient = null,
+    IRemoteImageCacheService? remoteImageCacheService = null)
+{
+    return new GameDetailViewModel(
+        game,
+        new ImmediateGameLauncher(new LaunchResult(DateTime.Now, TimeSpan.Zero)),
+        (current, _) => current,
+        _ => { },
+        () => { },
+        new RecordingSaveBackupService(@"D:\Backups\metadata.zip"),
+        new QueuedFilePickerService(),
+        new RecordingAppSettingsStore(new AppSettings()),
+        new RecordingGameSessionPresentationService(),
+        gameLibraryService: library,
+        metadataProvider: provider,
+        bangumiAccountStore: accountStore,
+        bangumiApiClient: apiClient,
+        remoteImageCacheService: remoteImageCacheService);
 }
 
 static WebDavSettings CreateWebDavSettings()
@@ -3560,6 +5308,14 @@ static string DecodeBasicAuth(AuthenticationHeaderValue authorization)
 {
     var bytes = Convert.FromBase64String(authorization.Parameter ?? string.Empty);
     return System.Text.Encoding.UTF8.GetString(bytes);
+}
+
+static HttpResponseMessage JsonResponse(string json, HttpStatusCode statusCode = HttpStatusCode.OK)
+{
+    return new HttpResponseMessage(statusCode)
+    {
+        Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json")
+    };
 }
 
 sealed class QueuedFilePickerService : IFilePickerService
@@ -3993,6 +5749,24 @@ sealed class RecordingWebDavGameSyncService : IWebDavGameSyncService
         return Task.FromResult<IReadOnlyList<GameCloudMetadata>>([metadata]);
     }
 
+    public ExternalGameMetadataCloudSnapshot? ExternalMetadata { get; set; }
+
+    public Task<WebDavGameSyncResult> UploadExternalMetadataAsync(
+        WebDavSettings settings,
+        ExternalGameMetadataCloudSnapshot snapshot)
+    {
+        ExternalMetadata = snapshot;
+        return Task.FromResult(new WebDavGameSyncResult(true, "external metadata uploaded"));
+    }
+
+    public Task<ExternalGameMetadataCloudSnapshot?> DownloadExternalMetadataAsync(WebDavSettings settings, string gameId)
+    {
+        return Task.FromResult(
+            ExternalMetadata is not null && string.Equals(ExternalMetadata.GameId, gameId, StringComparison.OrdinalIgnoreCase)
+                ? ExternalMetadata
+                : null);
+    }
+
     public Task<IReadOnlyList<PlaySession>> DownloadPlaySessionsAsync(WebDavSettings settings, GameCloudMetadata metadata)
     {
         return Task.FromResult<IReadOnlyList<PlaySession>>([]);
@@ -4028,6 +5802,8 @@ sealed class ConfigurableWebDavGameSyncService : IWebDavGameSyncService
     public int DownloadLatestCalls { get; private set; }
     public string? LastDownloadDestination { get; private set; }
     public List<(string GameId, string? LatestBackupPath)> Uploads { get; } = [];
+    public List<ExternalGameMetadataCloudSnapshot> UploadedExternalMetadataSnapshots { get; } = [];
+    public Dictionary<string, ExternalGameMetadataCloudSnapshot> ExternalMetadata { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     public Task<WebDavGameSyncResult> UploadGamesIndexAsync(WebDavSettings settings, IReadOnlyList<Game> games) =>
         Task.FromResult(new WebDavGameSyncResult(true, "index uploaded"));
@@ -4046,6 +5822,17 @@ sealed class ConfigurableWebDavGameSyncService : IWebDavGameSyncService
 
     public Task<IReadOnlyList<GameCloudMetadata>> DownloadGameMetadataAsync(WebDavSettings settings) =>
         Task.FromResult<IReadOnlyList<GameCloudMetadata>>([]);
+
+    public Task<WebDavGameSyncResult> UploadExternalMetadataAsync(
+        WebDavSettings settings,
+        ExternalGameMetadataCloudSnapshot snapshot)
+    {
+        UploadedExternalMetadataSnapshots.Add(snapshot);
+        return Task.FromResult(new WebDavGameSyncResult(true, "external metadata uploaded"));
+    }
+
+    public Task<ExternalGameMetadataCloudSnapshot?> DownloadExternalMetadataAsync(WebDavSettings settings, string gameId) =>
+        Task.FromResult(ExternalMetadata.TryGetValue(gameId, out var snapshot) ? snapshot : null);
 
     public Task<IReadOnlyList<PlaySession>> DownloadPlaySessionsAsync(WebDavSettings settings, GameCloudMetadata metadata) =>
         Task.FromResult<IReadOnlyList<PlaySession>>([]);
@@ -4095,6 +5882,7 @@ sealed class StartupPullGameSyncService : IWebDavGameSyncService
     public HashSet<string> FailingMachinePathGameIds { get; } = new(StringComparer.OrdinalIgnoreCase);
     public Dictionary<string, MachineGamePath> MachinePaths { get; } = new(StringComparer.OrdinalIgnoreCase);
     public Dictionary<string, string> CoverPaths { get; } = new(StringComparer.OrdinalIgnoreCase);
+    public Dictionary<string, ExternalGameMetadataCloudSnapshot> ExternalMetadata { get; } = new(StringComparer.OrdinalIgnoreCase);
     public int CoverDownloadCalls { get; private set; }
 
     public Task<WebDavGameSyncResult> UploadGamesIndexAsync(WebDavSettings settings, IReadOnlyList<Game> games) =>
@@ -4111,6 +5899,14 @@ sealed class StartupPullGameSyncService : IWebDavGameSyncService
 
     public Task<IReadOnlyList<GameCloudMetadata>> DownloadGameMetadataAsync(WebDavSettings settings) =>
         Task.FromResult(metadata);
+
+    public Task<WebDavGameSyncResult> UploadExternalMetadataAsync(
+        WebDavSettings settings,
+        ExternalGameMetadataCloudSnapshot snapshot) =>
+        Task.FromResult(new WebDavGameSyncResult(true, "uploaded"));
+
+    public Task<ExternalGameMetadataCloudSnapshot?> DownloadExternalMetadataAsync(WebDavSettings settings, string gameId) =>
+        Task.FromResult(ExternalMetadata.TryGetValue(gameId, out var snapshot) ? snapshot : null);
 
     public Task<IReadOnlyList<PlaySession>> DownloadPlaySessionsAsync(WebDavSettings settings, GameCloudMetadata metadata) =>
         Task.FromResult<IReadOnlyList<PlaySession>>([]);
@@ -4281,6 +6077,29 @@ sealed class RecordingHttpMessageHandler : HttpMessageHandler
     }
 }
 
+sealed class QueuedHttpMessageHandler : HttpMessageHandler
+{
+    private readonly Queue<HttpResponseMessage> responses;
+
+    public QueuedHttpMessageHandler(params HttpResponseMessage[] responses)
+    {
+        this.responses = new Queue<HttpResponseMessage>(responses);
+    }
+
+    public List<HttpRequestMessage> Requests { get; } = [];
+
+    public List<string> RequestBodies { get; } = [];
+
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        Requests.Add(request);
+        RequestBodies.Add(request.Content is null
+            ? string.Empty
+            : await request.Content.ReadAsStringAsync(cancellationToken));
+        return responses.Dequeue();
+    }
+}
+
 sealed class RecordingUploadHttpMessageHandler : HttpMessageHandler
 {
     private readonly Dictionary<string, (HttpStatusCode StatusCode, string Content)> responses = [];
@@ -4288,6 +6107,8 @@ sealed class RecordingUploadHttpMessageHandler : HttpMessageHandler
     public List<HttpRequestMessage> Requests { get; } = [];
 
     public Dictionary<string, string> UploadedText { get; } = [];
+
+    public Dictionary<string, byte[]> UploadedBytes { get; } = [];
 
     public void RespondWithText(string method, string uri, string content, HttpStatusCode statusCode = HttpStatusCode.OK)
     {
@@ -4299,7 +6120,9 @@ sealed class RecordingUploadHttpMessageHandler : HttpMessageHandler
         Requests.Add(request);
         if (request.Content is not null)
         {
-            UploadedText[request.RequestUri!.AbsoluteUri] = await request.Content.ReadAsStringAsync(cancellationToken);
+            var bytes = await request.Content.ReadAsByteArrayAsync(cancellationToken);
+            UploadedBytes[request.RequestUri!.AbsoluteUri] = bytes;
+            UploadedText[request.RequestUri!.AbsoluteUri] = System.Text.Encoding.UTF8.GetString(bytes);
         }
 
         var key = $"{request.Method.Method.ToUpperInvariant()} {request.RequestUri!.AbsoluteUri}";
@@ -4362,5 +6185,273 @@ sealed class SequentialHttpMessageHandler : HttpMessageHandler
         }
 
         return Task.FromResult(responses.Dequeue());
+    }
+}
+
+sealed class DelayedHttpMessageHandler : HttpMessageHandler
+{
+    private readonly TimeSpan delay;
+
+    public DelayedHttpMessageHandler(TimeSpan delay)
+    {
+        this.delay = delay;
+    }
+
+    protected override async Task<HttpResponseMessage> SendAsync(
+        HttpRequestMessage request,
+        CancellationToken cancellationToken)
+    {
+        await Task.Delay(delay, cancellationToken);
+        return new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("""{"data":[]}""", System.Text.Encoding.UTF8, "application/json")
+        };
+    }
+}
+
+sealed class CountingBangumiApiClient : IBangumiApiClient
+{
+    public int SearchCalls { get; private set; }
+
+    public Task<BangumiAccount> GetCurrentUserAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+
+    public Task<IReadOnlyList<GameMetadataSearchResult>> SearchGamesAsync(
+        string query,
+        CancellationToken cancellationToken = default)
+    {
+        SearchCalls++;
+        return Task.FromResult<IReadOnlyList<GameMetadataSearchResult>>(
+        [
+            new("bangumi", "cached-result", "Test Game", "测试游戏", "2026-06-08", string.Empty, "Summary")
+        ]);
+    }
+
+    public Task<ExternalGameMetadata?> GetGameDetailsAsync(
+        string subjectId,
+        CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+
+    public Task<BangumiCollectionState?> GetCollectionAsync(
+        BangumiAccount account,
+        string gameId,
+        string subjectId,
+        CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+
+    public Task<BangumiCollectionState> SaveCollectionAsync(
+        BangumiAccount account,
+        BangumiCollectionState state,
+        bool isExistingCollection = false,
+        CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+}
+
+sealed class FixedMetadataProvider : IGameMetadataProvider
+{
+    private readonly ExternalGameMetadata metadata;
+
+    public FixedMetadataProvider(ExternalGameMetadata metadata)
+    {
+        this.metadata = metadata;
+        Result = new GameMetadataSearchResult(
+            metadata.Provider,
+            metadata.SubjectId,
+            metadata.OriginalName,
+            metadata.LocalizedName,
+            metadata.ReleaseDate,
+            metadata.ImageUrl,
+            metadata.Summary);
+    }
+
+    public string ProviderId => "bangumi";
+
+    public GameMetadataSearchResult Result { get; }
+
+    public Task<IReadOnlyList<GameMetadataSearchResult>> SearchAsync(
+        string query,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<GameMetadataSearchResult>>([Result]);
+
+    public Task<ExternalGameMetadata?> GetDetailsAsync(
+        string subjectId,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult<ExternalGameMetadata?>(metadata);
+}
+
+sealed class SearchResultOnlyMetadataProvider : IGameMetadataProvider
+{
+    private readonly GameMetadataSearchResult result;
+
+    public SearchResultOnlyMetadataProvider(GameMetadataSearchResult result)
+    {
+        this.result = result;
+    }
+
+    public string ProviderId => result.Provider;
+
+    public Task<IReadOnlyList<GameMetadataSearchResult>> SearchAsync(
+        string query,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<GameMetadataSearchResult>>([result]);
+
+    public Task<ExternalGameMetadata?> GetDetailsAsync(
+        string subjectId,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult<ExternalGameMetadata?>(null);
+}
+
+sealed class CancellableMetadataProvider : IGameMetadataProvider
+{
+    public string ProviderId => "bangumi";
+
+    public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public bool WasCancelled { get; private set; }
+
+    public async Task<IReadOnlyList<GameMetadataSearchResult>> SearchAsync(
+        string query,
+        CancellationToken cancellationToken = default)
+    {
+        Started.TrySetResult();
+        try
+        {
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            return [];
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            WasCancelled = true;
+            throw;
+        }
+    }
+
+    public Task<ExternalGameMetadata?> GetDetailsAsync(
+        string subjectId,
+        CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+}
+
+sealed class CancellableRemoteImageCacheService : IRemoteImageCacheService
+{
+    public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public async Task<string?> DownloadAsync(
+        string provider,
+        string subjectId,
+        string imageUrl,
+        CancellationToken cancellationToken = default)
+    {
+        Started.TrySetResult();
+        await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+        return null;
+    }
+}
+
+sealed class ThrowingRemoteImageCacheService : IRemoteImageCacheService
+{
+    public Task<string?> DownloadAsync(
+        string provider,
+        string subjectId,
+        string imageUrl,
+        CancellationToken cancellationToken = default) =>
+        throw new InvalidOperationException("cover failed");
+}
+
+sealed class RecordingRemoteImageCacheService : IRemoteImageCacheService
+{
+    private readonly string? resultPath;
+
+    public RecordingRemoteImageCacheService(string? resultPath)
+    {
+        this.resultPath = resultPath;
+    }
+
+    public string? LastImageUrl { get; private set; }
+
+    public Task<string?> DownloadAsync(
+        string provider,
+        string subjectId,
+        string imageUrl,
+        CancellationToken cancellationToken = default)
+    {
+        LastImageUrl = imageUrl;
+        return Task.FromResult(resultPath);
+    }
+}
+
+sealed class RejectingBangumiApiClient : IBangumiApiClient
+{
+    public Task<BangumiAccount> GetCurrentUserAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        throw new BangumiApiException("reconnect", HttpStatusCode.Unauthorized);
+
+    public Task<IReadOnlyList<GameMetadataSearchResult>> SearchGamesAsync(
+        string query,
+        CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+
+    public Task<ExternalGameMetadata?> GetGameDetailsAsync(
+        string subjectId,
+        CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+
+    public Task<BangumiCollectionState?> GetCollectionAsync(
+        BangumiAccount account,
+        string gameId,
+        string subjectId,
+        CancellationToken cancellationToken = default) =>
+        throw new BangumiApiException("reconnect", HttpStatusCode.Unauthorized);
+
+    public Task<BangumiCollectionState> SaveCollectionAsync(
+        BangumiAccount account,
+        BangumiCollectionState state,
+        bool isExistingCollection = false,
+        CancellationToken cancellationToken = default) =>
+        throw new BangumiApiException("reconnect", HttpStatusCode.Unauthorized);
+}
+
+sealed class RecordingBangumiApiClient : IBangumiApiClient
+{
+    public bool LastSaveWasExisting { get; private set; }
+
+    public BangumiCollectionState? LastSavedState { get; private set; }
+
+    public Task<BangumiAccount> GetCurrentUserAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+
+    public Task<IReadOnlyList<GameMetadataSearchResult>> SearchGamesAsync(
+        string query,
+        CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+
+    public Task<ExternalGameMetadata?> GetGameDetailsAsync(
+        string subjectId,
+        CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+
+    public Task<BangumiCollectionState?> GetCollectionAsync(
+        BangumiAccount account,
+        string gameId,
+        string subjectId,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult<BangumiCollectionState?>(new(
+            gameId,
+            subjectId,
+            account.Username,
+            BangumiCollectionType.Wish,
+            0,
+            string.Empty,
+            DateTime.UtcNow,
+            DateTime.UtcNow));
+
+    public Task<BangumiCollectionState> SaveCollectionAsync(
+        BangumiAccount account,
+        BangumiCollectionState state,
+        bool isExistingCollection = false,
+        CancellationToken cancellationToken = default)
+    {
+        LastSaveWasExisting = isExistingCollection;
+        LastSavedState = state;
+        return Task.FromResult(state);
     }
 }

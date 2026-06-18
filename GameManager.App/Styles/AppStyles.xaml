@@ -245,9 +245,12 @@
                             Background="Transparent"
                             CornerRadius="6"
                             Padding="{TemplateBinding Padding}">
-                        <TextBlock Text="{Binding Content.Label, RelativeSource={RelativeSource TemplatedParent}}"
-                                   Foreground="{TemplateBinding Foreground}"
-                                   TextTrimming="CharacterEllipsis" />
+                        <ContentPresenter Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          ContentTemplateSelector="{TemplateBinding ContentTemplateSelector}"
+                                          ContentStringFormat="{TemplateBinding ContentStringFormat}"
+                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsHighlighted" Value="True">
@@ -283,7 +286,9 @@
                                       Background="{TemplateBinding Background}"
                                       BorderBrush="{TemplateBinding BorderBrush}"
                                       BorderThickness="{TemplateBinding BorderThickness}"
-                                      Tag="{Binding SelectedItem.Label, RelativeSource={RelativeSource TemplatedParent}}"
+                                      Content="{Binding SelectionBoxItem, RelativeSource={RelativeSource TemplatedParent}}"
+                                      ContentTemplate="{Binding SelectionBoxItemTemplate, RelativeSource={RelativeSource TemplatedParent}}"
+                                      ContentTemplateSelector="{Binding SelectionBoxItemTemplateSelector, RelativeSource={RelativeSource TemplatedParent}}"
                                       IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
                             <ToggleButton.Template>
                                 <ControlTemplate TargetType="ToggleButton">
@@ -297,10 +302,11 @@
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="18" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="{TemplateBinding Tag}"
-                                                       Foreground="{DynamicResource TextBrush}"
-                                                       TextTrimming="CharacterEllipsis"
-                                                       VerticalAlignment="Center" />
+                                            <ContentPresenter Content="{TemplateBinding Content}"
+                                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                                              ContentTemplateSelector="{TemplateBinding ContentTemplateSelector}"
+                                                              ContentStringFormat="{TemplateBinding ContentStringFormat}"
+                                                              VerticalAlignment="Center" />
                                             <Path Grid.Column="1"
                                                   Data="M 3,6 L 9,12 L 15,6"
                                                   Stroke="{DynamicResource MutedTextBrush}"

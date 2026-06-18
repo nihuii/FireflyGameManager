@@ -12,7 +12,8 @@ public sealed class AddGameRequest
         bool runAsAdministrator = false,
         string workingDirectory = "",
         string monitorProcessName = "",
-        bool syncEnabled = true)
+        bool syncEnabled = true,
+        ExternalGameMetadata? externalMetadata = null)
     {
         Name = name;
         ExecutablePath = executablePath;
@@ -24,6 +25,7 @@ public sealed class AddGameRequest
         WorkingDirectory = workingDirectory;
         MonitorProcessName = monitorProcessName;
         SyncEnabled = syncEnabled;
+        ExternalMetadata = externalMetadata;
     }
 
     public string Name { get; }
@@ -45,4 +47,6 @@ public sealed class AddGameRequest
     public string MonitorProcessName { get; }
 
     public bool SyncEnabled { get; }
+
+    public ExternalGameMetadata? ExternalMetadata { get; }
 }

@@ -1109,7 +1109,67 @@ dotnet build .\GameManager.App.Tests\GameManager.App.Tests.csproj --no-restore
 
 ---
 
-## 21. 参考资料
+## 21. 阶段 A / B 实施状态（2026-06-08）
+
+阶段 A 已实现：
+
+- 已新增外部游戏资料模型、搜索结果模型，以及 SQLite 兼容迁移。
+- 添加和编辑游戏页面已支持显式搜索 Bangumi、显示封面/名称/日期/简介候选信息、查看完整详情，并分别选择是否导入名称、封面、简介、发行日期、开发商、发行商和标签。
+- Bangumi 候选列表使用固定高度和单行紧凑摘要，真实搜索结果中的换行简介不会挤压相邻条目。
+- Bangumi 搜索会将完全同名、忽略空白/标点/符号后的同名、前缀命中和包含命中的条目重新排序；当 CJK 查询在 v0 搜索中没有强标题命中时，会补充请求旧版 `search/subject` 接口并合并去重，使结果更接近 Bangumi 网页搜索。
+- 编辑现有游戏时默认不覆盖本地名称和封面。
+- 搜索结果缓存 10 分钟；搜索、详情读取和封面下载支持取消，离开添加/编辑页面时会取消未完成请求。
+- Bangumi 请求默认 15 秒超时，单次 5xx 自动重试一次，并为 401、403、404、429、5xx 和超时提供可理解的页面内错误。
+- 已实现公开详情映射、HTTPS 图片大小限制、PNG/JPEG 文件头和真实解码校验、原子缓存写入。
+- 添加/编辑页已在自身资源中提供延迟模板所需的可见性转换器，避免首次进入页面时发生 XAML 资源解析崩溃。
+- 游戏详情页已显示简介、日期、开发商、发行商、标签与来源链接；长简介支持展开/收起。
+- 详情页刷新资料时先展示变化字段并等待用户确认，只有被选中的字段才会更新；名称和封面只有在用户明确勾选后才会覆盖。
+- 解除关联会保留已经导入的本地资料快照。
+
+阶段 B 已实现：
+
+- 已实现 Bangumi Access Token 登录、重新验证和退出登录。
+- Token 使用独立用途的 DPAPI 加密保存；本地数据导出明确排除 `bangumi-account.json`。
+- 旧版整库 WebDAV 上传会使用安全数据库副本，排除收藏缓存和阶段 C 才允许同步的外部资料；手动下载后恢复本机私有表。
+- 设置中心已增加“账号与数据源”，使用 `PasswordBox` 输入 Token，并显示头像、昵称、用户名和验证时间。
+- 已新增 Bangumi 收藏状态缓存表；游戏详情页支持读取、刷新和修改收藏状态。
+- 收藏创建使用 `POST`，已有收藏修改使用 `PATCH`；保存失败时会恢复旧状态。
+- Token 被撤销或授权失败时保留本地账号资料并标记为“需要重新连接”，收藏控件会隐藏，本地游戏资料不受影响。
+- 未登录、授权失效或未关联游戏时隐藏收藏控件。
+- Bangumi 当前公开 API 未提供删除条目收藏接口，因此 Firefly 不发送未文档化的“取消收藏”请求。
+
+阶段 C 基础同步已实现：
+
+- 已新增独立的 `ExternalGameMetadataCloudSnapshot` 云端快照模型，外部资料通过 `v2/games/{gameId}/external-metadata.json` 同步，不写入现有 `metadata.json`，保持旧客户端基础游戏资料兼容。
+- `SqliteGameLibraryService` 已支持读取单个/全部外部资料快照，并按 `snapshotUpdatedAtUtc` 合并云端资料。
+- 同一 provider + subject 时较新快照胜出，较旧云端资料不会覆盖本机；provider 或 subject 不一致时返回冲突结果，当前阶段只记录/保守跳过，完整冲突 UI 留到后续阶段。
+- `WebDavGameSyncService` 已支持上传和下载 `external-metadata.json`；单游戏上传、启动云端拉取和全量同步都会处理外部资料快照。
+- 旧版整库 WebDAV 上传仍使用安全数据库副本，继续排除 `game_external_metadata` 与 `bangumi_collection_states`；阶段 C 外部资料只走 V2 独立 JSON 文件，不同步 Token 和收藏缓存。
+
+自动化覆盖：
+
+- 测试入口目前共登记 188 项测试。
+- 已新增 SQLite 外部资料、字段级导入、搜索取消和缓存、刷新差异确认、简介折叠、收藏缓存、Bangumi API 状态翻译与重试、Token 加密与失效状态、图片真实解码、数据导出排除、WebDAV 收藏缓存隔离、阶段 C 外部资料快照读写/上传/下载/启动拉取/全量同步、Bangumi 精确标题优先、标题符号忽略排序、旧搜索接口回退和 UI 接入测试。
+- 2026-06-17 已完成 Bangumi 搜索修复回归：180 项测试全部通过，构建 0 警告、0 错误；真实请求验证 `search/subject/冬日狂想曲` 第一条返回 `427028 / あまえんぼ冬 / 冬日狂想曲`，`search/subject/千恋万花` 第一条返回 `172612 / 千恋＊万花`。
+- 2026-06-17 已完成阶段 C 基础同步回归：188 项测试全部通过。
+
+本轮未包含：
+
+- 阶段 C 后续：外部资料冲突可视化解决 UI。
+
+2026-06-17 阶段 2/3 已完成：
+
+- 外部资料冲突已从“保守跳过”推进为可持久化、可视化解决：`external_metadata_conflicts` 保存本机/云端快照和 compact reason，详情页提供保留本机、采用云端、解除关联三个动作。
+- WebDAV 旧整库上传/下载流程已把 `external_metadata_conflicts` 作为本机私有表处理，避免本机冲突状态扩散到云端数据库副本。
+- 管理页已支持批量匹配未关联游戏：先搜索并显示待确认候选，用户勾选后才写入 `ExternalGameMetadata`。
+- Bangumi 收藏 UI 已支持评分和短评，保存时与收藏类型一起提交到 API 并写入本地缓存。
+- 搜索结果模型新增 `AuxiliaryInfo`，Bangumi 搜索排序继续支持标题符号忽略和多关键词归一化。
+- 当前测试入口登记 197 项，完整 `GameManager.App.Tests` 已通过。
+- 阶段 D：OAuth 登录和更多资料提供方。
+
+---
+
+## 22. 参考资料
 
 - Bangumi API 文档：<https://bangumi.github.io/api/>
 - Bangumi OAuth 说明：<https://github.com/bangumi/api/blob/master/docs-raw/How-to-Auth.md>

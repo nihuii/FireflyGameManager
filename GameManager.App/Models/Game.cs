@@ -16,7 +16,8 @@ public sealed class Game
         string workingDirectory = "",
         string monitorProcessName = "",
         bool syncEnabled = true,
-        DateTime? updatedAtUtc = null)
+        DateTime? updatedAtUtc = null,
+        ExternalGameMetadata? externalMetadata = null)
     {
         Id = id;
         Name = name;
@@ -32,6 +33,7 @@ public sealed class Game
         MonitorProcessName = monitorProcessName;
         SyncEnabled = syncEnabled;
         UpdatedAtUtc = updatedAtUtc?.ToUniversalTime() ?? DateTime.UtcNow;
+        ExternalMetadata = externalMetadata;
     }
 
     public string Id { get; }
@@ -61,6 +63,8 @@ public sealed class Game
     public bool SyncEnabled { get; }
 
     public DateTime UpdatedAtUtc { get; }
+
+    public ExternalGameMetadata? ExternalMetadata { get; }
 
     public string PlayTimeDisplay => $"{(int)TotalPlayTime.TotalHours} 小时 {TotalPlayTime.Minutes} 分钟";
 }
